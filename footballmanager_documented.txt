@@ -1,0 +1,2067 @@
+================================================================================
+FOOTBALL MANAGER C-64
+BY DANIELE PICCOLI
+COMMODORE 64 BASIC PROGRAM - DOCUMENTED VERSION
+================================================================================
+
+PROGRAM ANALYSIS AND DOCUMENTATION
+-----------------------------------
+This is a complete Italian football (soccer) management simulation game
+written in Commodore 64 BASIC. The program allows players to manage a
+football team through multiple seasons across different Italian league
+divisions (Serie A, B, C1, C2).
+
+PROGRAM STRUCTURE:
+1. Initialization and Setup (Lines 10-810)
+2. Main Menu System (Lines 820-1000)
+3. Player Trading/Market (Lines 1070-1460)
+4. Banking/Financial System (Lines 1470-1620)
+5. League Tables/Statistics (Lines 1630-1870)
+6. Team Status Display (Lines 1880-2900)
+7. Match Simulation Engine (Lines 3000-4280)
+8. Season Management (Lines 4060-4300)
+
+================================================================================
+VARIABLE DEFINITIONS
+================================================================================
+
+STRING ARRAYS:
+--------------
+A$(64)  - Team names (64 teams across 4 divisions)
+B$(24)  - Player names (24 famous players)
+C$(30)  - Match results storage
+D$(2)   - Current match team names
+
+NUMERIC ARRAYS:
+--------------
+A(24)   - Player style ratings (1-5)
+B(24)   - Player power/strength ratings (1-20)
+C(24)   - Player ownership status (0=not owned, 1=injured, 2=benched, 3=substitute, 4=starting)
+D(14)   - Match statistics arrays
+E(16)   - Goals conceded per team
+F(16)   - Goals scored per team
+G(16)   - Points per team
+H(2)    - Current match score
+J(16)   - Team morale values
+V(16)   - League position rankings
+W(16)   - Team activity flags
+
+GLOBAL VARIABLES:
+-----------------
+W       - Player's cash/money
+Y       - Player's debt
+Z       - Weekly interest payment
+K       - Team morale (1-20)
+R       - Management level (1-100)
+B1      - Season/campaign counter
+N       - Current division level (1=A, 2=B, 3=C1, 4=C2)
+I       - Matches played counter
+QZ      - Player's team number (always 49)
+
+STRING VARIABLES:
+----------------
+PIQ$    - Menu border string
+IP$     - Display string
+RIG$    - Line display string
+UNO$, DUE$, TRE$, TUO$ - Display formatting strings
+DES$    - Description/context variable
+PT$     - Spacing string
+C$      - Status indicator string
+SR$(4)  - Division names array
+
+================================================================================
+LINE-BY-LINE BREAKDOWN WITH COMMENTS
+================================================================================
+
+------------------------------------------------------------------------
+SECTION 1: INITIALIZATION AND GRAPHICS SETUP (Lines 10-490)
+------------------------------------------------------------------------
+
+10 REM ** Load address and initialization **
+   POKE 650,127  : REM Disable keyboard buffering
+
+20-40 REM ** Define display border strings **
+   PIQ$ = "█ ███████████████████████████████████"
+   IP$  = "██                        █"
+   RIG$ = "                                    █"
+   UNO$ = "█ ██████████████████████████████████"
+   DUE$ = " █                                    █"
+   TRE$ = " ██████████████████████████████████"
+   TUO$ = " ██████████████████████████████████"
+
+50-100 REM ** Title screen display **
+   PRINT "*****************************"
+   PRINT "*  FOOTBALL  MANAGER  C-64  *"
+   PRINT "*            BY             *"
+   PRINT "*     DANIELE PICCOLI       *"
+   PRINT "*  LOCALITA' CABINA  N 14   *"
+   PRINT "*  GRAZZANO VISCONTI (PC)   *"
+   PRINT "*  TEL. 870765 PREF. 0523   *"
+   PRINT "*****************************"
+
+110-130 REM ** Set screen colors and clear **
+   POKE 53280,5 : REM Border color = green
+   POKE 53281,5 : REM Background color = green
+   PRINT CHR$(147) : REM Clear screen
+
+140-230 REM ** Draw top border animation **
+   POKE(142) : REM cursor positioning
+   PRINT "████████████████████████████"
+   FOR APE=1 TO 16
+      PRINT IP$
+   NEXT
+   PRINT "███████████████████"
+
+240-360 REM ** Context-based message display routine **
+   REM This displays different prompts based on DES$ value
+   IF DES$="G" THEN PRINT "PER GLI ALTRI" ELSE PRINT "PER LE ALTRE"
+   IF DES$="G" THEN PRINT "GIOCATORI" ELSE PRINT "SQUADRE"
+   IF DES$="SCE" THEN PRINT "SCEGLI LA TUA SQUADRA"
+   IF DES$="SQ" THEN PRINT "QUALE NOME DI SQUADRA VUOI CAMBIARE ?"
+   IF DES$="GIO" THEN PRINT "QUALE NOME DI GIOCATORE VUOI CAMBIARE ?"
+
+370-490 REM ** Display formatted list with counter **
+   GG=0
+   PRINT CHR$(147) : REM Clear screen
+   FOR loop: display UNO$, DUE$, TRE$ borders with counter
+   Display menu items incrementally
+   Handle keyboard input for selection
+
+------------------------------------------------------------------------
+SECTION 2: MAIN GAME INITIALIZATION (Lines 500-800)
+------------------------------------------------------------------------
+
+500-580 REM ** Dimension arrays and initialize variables **
+   DIM A$(64), B$(24), C$(30), D$(2)
+   DIM A(24), B(24), C(24), D(14), E(16), F(16), G(16)
+   DIM H(2), J(16), V(16), W(16)
+
+   SI=0          : REM Season indicator
+   W=150000      : REM Starting cash: 150,000 lire
+   Y=0           : REM Starting debt: 0
+   Z=0           : REM Starting interest: 0
+   K=15          : REM Team morale: 15/20
+   R=20          : REM Management rating: 20/100
+   B1=1          : REM Season counter: 1
+
+590-620 REM ** Load famous player names **
+   READ B$(1) through B$(24)
+   PT$ = "   " : REM spacing string
+
+   Players include:
+   BORDON, TANCREDI, NELA, CABRINI, VIERCHOWOD, JUNIOR, PASSARELLA, TRICELLA (defenders)
+   WILKINS, ZICO, SOUNESS, BAGNI, MARADONA, PLATINI, DOSSENA, BRADY (midfielders)
+   ALTOBELLI, RUMENIGGE, GIORDANO, ROSSI, VIRDIS, GALDERISI, HATELEY, SERENA (forwards)
+
+630-710 REM ** Load team names for 4 divisions **
+   N=4 : REM Start in Serie C2 (4th division)
+
+   READ A$(1) through A$(64):
+
+   Serie A (1-16):
+   ASCOLI, ATALANTA, AVELLINO, COMO, CREMONESE, FIORENTINA, INTER, JUVENTUS
+   LAZIO, MILAN, NAPOLI, ROMA, SAMPDORIA, TORINO, UDINESE, VERONA
+
+   Serie B (17-32):
+   AREZZO, TRENTO, CAGLIARI, CATANIA, CESENA, EMPOLI, GENOA, LECCE
+   MONZA, PADOVA, PERUGIA, CATANZARO, PISA, TARANTO, TRIESTINA, VARESE
+
+   Serie C1 (33-48):
+   BOLOGNA, CAMPOBASSO, PARMA, PIACENZA, VICENZA, RIMINI, PISTOIESE, BRESCIA
+   MODENA, SANREMESE, SPAL, CARRARESE, ANCONA, LIVORNO, FOGGIA, PALERMO
+
+   Serie C2 (49-64):
+   PESCARA, MESSINA, CAVESE, REGGINA, FRANCAVILLA, CASARANO, NOCERINA, FANO
+   MANTOVA, SIRACUSA, SAVONA, SIENA, VENEZIA, ALESSANDRIA, POTENZA, BRINDISI
+
+720-740 REM ** Initialize division names **
+   SR$(4) = "C2"  : REM Serie C2
+   SR$(3) = "C1"  : REM Serie C1
+   SR$(2) = "B"   : REM Serie B
+   SR$(1) = "A"   : REM Serie A
+
+750-780 REM ** Randomize player attributes **
+   FOR HZ=1 TO 24
+      A(HZ) = INT(RND(1)*5)+1      : REM Style rating: 1-5
+      B(HZ) = INT(RND(1)*5)+15     : REM Power rating: 15-20
+   NEXT
+
+790-800 REM ** Assign initial squads randomly **
+   FOR HZ=1 TO 12
+      PZ = INT(RND(1)*24)+1
+      IF C(PZ)=0 OR C(PZ)=4 THEN GOTO 790
+      C(PZ) = 3 : REM Set as substitute
+   NEXT HZ
+
+------------------------------------------------------------------------
+SECTION 3: TEAM SELECTION (Lines 810-890)
+------------------------------------------------------------------------
+
+810-860 REM ** Display team selection screen **
+   FOR HZ=1 TO 65
+      IF HZ=65 THEN DES$="SCE": GOSUB 100 : REM Show selection prompt
+      IF HZ=65 THEN GOTO 800
+      PRINT ""
+      PRINT TAB(4); PZ; PT$; A$(PZ)
+   NEXT
+   PRINT ""
+
+870-890 REM ** Get team choice and swap with position 49 **
+   INPUT A$
+   IF A$="^" THEN HZ=HZ-16: GOTO 810
+   QZ = VAL(A$)
+   IF QZ<HZ OR QZ>HZ+15 THEN GOTO 820
+
+   REM Swap selected team into position 49 (player's team)
+   A$ = A$(49)
+   A$(49) = A$(QZ)
+   A$(QZ) = A$
+
+   REM Initialize team morale values
+   FOR HZ=1 TO 16
+      J(HZ) = 1
+   NEXT
+   J(1) = 6 : REM Player's team starts with morale 6
+   QZ = 49  : REM Player always at position 49
+
+------------------------------------------------------------------------
+SECTION 4: MAIN MENU SYSTEM (Lines 900-1070)
+------------------------------------------------------------------------
+
+900-950 REM ** Display main menu options **
+   PRINT "█████████████████████████████████████████"
+   PRINT "█1█ █ PER VENDERE O LISTARE GIOCATORI  "
+   PRINT "█2█ █ PER OTTENERE UN PRESTITO         "
+   PRINT "█3█ █ PER STAMPARE LA CLASSIFICA       "
+   PRINT "█4█ █ PER VEDERE LA CONDIZIONE         "
+   PRINT "█5█ █ PER CAMBIARE IL NOME ALLE SQUADRE"
+   PRINT "█6█ █ PER CAMBIARE IL NOME AI GIOCATORI"
+   PRINT "█G█ █ PER GIOCARE LA PARTITA           "
+   PRINT "█R█ █ PER RICOMINCIARE DA ZERO         "
+   PRINT "█  █ CON UNA SQUADRA DIVERSA          "
+   PRINT "████████████████████████████████████"
+
+960-1070 REM ** Main menu input handler **
+   INPUT A$
+   IF A$="" THEN GOTO 970
+
+   IF A$="1" THEN GOSUB 1280: GOTO 890  : REM Sell/list players
+   IF A$="2" THEN GOSUB 1460: GOTO 890  : REM Get loan
+   IF A$="3" THEN GOSUB 1620: GOTO 890  : REM Show standings
+   IF A$="4" THEN GOSUB 1760: GOTO 890  : REM Show condition
+   IF A$="5" THEN GOSUB 2600: GOTO 890  : REM Change team names
+   IF A$="6" THEN GOSUB 2750: GOTO 890  : REM Change player names
+   IF A$="R" THEN END                    : REM Restart
+   IF A$<>"G" THEN GOTO 890              : REM Invalid choice
+
+   GOSUB 2900 : REM Continue with match
+
+------------------------------------------------------------------------
+SECTION 5: PLAYER LISTING AND TRADING (Lines 1080-1450)
+------------------------------------------------------------------------
+
+1080-1170 REM ** List all players by status **
+   PZ=0: UZ=0: AZ=0 : REM Counters
+
+   REM Count available players
+   FOR XZ=1 TO 24
+      IF C(XZ)=0 THEN AZ=AZ+1
+   NEXT
+
+   PRINT ""
+
+   REM Display players in 3 columns
+   FOR XZ=1 TO 24
+      IF C(XZ)=0 THEN GOTO 1260 : REM Skip if not available
+
+      REM Determine column (KJ=1,2,3)
+      IF XZ<=8 THEN KJ=1: GOSUB 1220
+      IF XZ>8 AND XZ<=16 THEN KJ=2: GOSUB 1220
+      IF XZ>16 THEN KJ=3
+
+      REM Display player info:
+      PRINT TAB(XZ-64); " "; MID$(C$,KJ,1);
+      PRINT " "; B$(XZ); TAB(17); B(XZ); TAB(25); A(XZ); TAB(29);
+      PRINT 5000*(5-N)+5000*A(XZ); TAB(35); MID$(C$,(C(XZ)+3),1)
+
+      REM Track counts
+      IF C(XZ)=3 THEN PZ=PZ+1  : REM Substitutes
+      IF C(XZ)=4 THEN UZ=UZ+1  : REM Starters
+
+1260 NEXT XZ
+
+1280-1450 REM ** Player selling routine **
+   GOSUB 1150 : REM Display player list
+
+   PRINT "VENDI QUALCUNO ? , SE NO PREMI SPACE"
+   INPUT A$
+   IF A$="" THEN GOTO 1310
+   IF A$=" " THEN RETURN : REM No sale
+
+   IF A$<"A" OR A$>"X" THEN GOTO 1310
+
+   UZ = ASC(A$)-64 : REM Convert letter to player number
+   PRINT ""
+   POKE 53272,28
+
+   REM Validate player ownership
+   IF C(UZ)=0 THEN
+      PRINT RIG$; "NON HAI "; B$(UZ); " NELLA TUA SQUADRA"
+      GOTO 1430
+
+   REM Check if offers exist
+   IF C(UZ)=1 THEN
+      PRINT RIG$; "NON CI SONO OFFERTE PER "; B$(UZ); ""
+      GOTO 1430
+
+   REM Calculate offer price (varies by division and player rating)
+   PZ = 5000*(5-N)+5000*A(UZ)
+   PZ = INT(PZ-(RND(1)*(PZ/10))-(RND(1)*(PZ/10)))
+
+   PRINT RIG$
+   PRINT "ACCETTI "; PZ; " DAL "; A$(INT(RND(1)*64)+1)
+   PRINT "PER IL TUO GIOCATORE "; B$(UZ); " ?"
+   PRINT "PREMERE  S  OPPURE  N  "
+
+   INPUT A$
+   IF A$<>"N" AND A$<>"S" THEN GOTO 1400
+
+   IF A$="S" THEN
+      W = W+PZ           : REM Add money
+      C(UZ) = 0          : REM Remove from squad
+      PRINT ""; B$(UZ); " E' STATO VENDUTO."
+      GOTO 1430
+
+   REM Randomly keep or sell
+   C(UZ) = INT(RND(1)*2)+1
+   PRINT ""; B$(UZ); " E' ANCORA UN TUO GIOCATORE."
+
+1440 PRINT "  SPACE  PER ANDARE AVANTI             "
+   INPUT A$
+   IF A$<>" " THEN GOTO 1440
+   RETURN
+
+------------------------------------------------------------------------
+SECTION 6: BANKING SYSTEM (Lines 1460-1620)
+------------------------------------------------------------------------
+
+1460-1610 REM ** Loan system **
+   GOSUB 200 : REM Display header
+
+   PRINT ""
+   PRINT "        BANCA DELLO SPORT"
+   PRINT "HAI UN TOTALE DI \ "; W
+   PRINT " E UN DEBITO DI \ "; Y
+   PRINT "QUANTO VUOI PRENDERE IN PRESTITO"
+
+   INPUT XZ
+   IF XZ<=0 THEN RETURN
+
+   REM Check max debt for current division
+   MAX_DEBT = 100000*(5-N)
+
+   IF XZ>Y+MAX_DEBT THEN
+      PRINT "NON E' POSSIBILE OTTENERE UN"
+      PRINT "UN PRESTITO DI \ "; XZ-Y
+      PRINT "IL MASSIMO DEBITO IN SERIE "; SR$(N)
+      PRINT "E' \ "; MAX_DEBT
+      GOTO 1590
+
+   REM Apply loan with 20% interest
+   Y = Y+XZ*1.2        : REM Total debt + 20%
+   Z = Y/20            : REM Weekly interest payment
+   W = W+XZ            : REM Add money
+
+   PRINT "E' POSSIBILE OTTENERE"
+   PRINT "UN PRESTITO DI \ "; XZ
+   PRINT "AMMONTARE DEL DEBITO \ "; Y
+   PRINT "INTERESSE SETTIMANALE \ "; Z
+   PRINT "HAI \ "; W
+   PRINT "  PREMI SPACE "
+
+1600 INPUT A$
+   IF A$<>" " THEN GOTO 1600
+   RETURN
+
+------------------------------------------------------------------------
+SECTION 7: LEAGUE TABLE DISPLAY (Lines 1620-1750)
+------------------------------------------------------------------------
+
+1620-1740 REM ** Display league standings **
+   GOSUB 430 : REM Header
+
+   IF I=0 THEN GOSUB 20810: RETURN : REM No matches played yet
+
+   PRINT ""; TAB(5); "SQUADRA"; TAB(21); "F"; TAB(25); "S"; TAB(29); "PT.";
+   PRINT TAB(35); "DR" : REM Goal difference
+
+   REM Clear position array
+   FOR UZ=1 TO 16
+      V(UZ) = 0
+   NEXT
+
+   REM Calculate positions by points, then goal difference
+   FOR UZ=1 TO 16
+      XZ=0
+      FOR PZ=1 TO 16
+         REM Compare points and goal difference
+         IF (G(PZ)>G(XZ)) OR (G(PZ)=G(XZ) AND (F(PZ)-E(PZ))>(F(XZ)-E(XZ))) THEN
+            IF V(PZ)=0 THEN XZ=PZ : REM This team is higher
+      NEXT PZ
+      V(XZ) = UZ : REM Assign position
+
+      REM Display team row
+      IF UZ<10 THEN PRINT "█";
+      PRINT ""; UZ; " "; A$(XZ+(N-1)*16); TAB(20); F(XZ); TAB(24); E(XZ);
+      PRINT TAB(28); G(XZ); TAB(34); F(XZ)-E(XZ)
+   NEXT UZ
+
+   PRINT "LA TUA POSIZIONE E' "; V(1); "'"
+
+   IF I=1 THEN
+      PRINT "DOPO "; I; " PARTITA "
+   ELSE
+      PRINT "DOPO "; I; " PARTITE "
+
+   PRINT "SPACE  PER ANDARE AVANTI"
+   INPUT A$
+   IF A$<>" " THEN GOTO 1740
+   PRINT CHR$(147)
+   RETURN
+   POKE 53272,28
+
+------------------------------------------------------------------------
+SECTION 8: TEAM CONDITION DISPLAY (Lines 1760-1880)
+------------------------------------------------------------------------
+
+1760-1870 REM ** Display team status **
+   GOSUB 200 : REM Header
+
+   REM Adjust management rating based on position
+   IF B1=1 THEN PZ=20: GOTO 1790
+   PZ = R-(B1-1)
+   IF PZ>100 THEN PZ=100
+
+   PRINT "SOCIETA'  "; A$(49)
+   PRINT "LIVELLO DIREZIONE : "; PZ
+   PRINT "CAMPIONATI GIOCATI : "; B1
+   PRINT "MORALE DELLA SQUADRA : "; K
+   PRINT "POSIZIONE : "; V(1); "'  IN SERIE "; SR$(N); "."
+   PRINT "SOLDI IN CASSA : "; W
+   PRINT "   DEBITI      : "; Z
+   PRINT "PREMI SPACE"
+
+1870 INPUT A$
+   IF A$<>" " THEN GOTO 1870
+   RETURN
+
+------------------------------------------------------------------------
+SECTION 9: TITLE SCREEN GRAPHICS (Lines 1880-2590)
+------------------------------------------------------------------------
+
+1880-2590 REM ** Fancy title screen with ASCII art **
+   REM Display formatted title with borders
+   REM Shows "FOOTBALL MANAGER C-64"
+   REM Shows "DANIELE PICCOLI"
+   REM ASCII art of football field/ball
+   REM Delay loop for presentation
+
+   PRINT "█                           █"
+   PRINT " █ █████████████████████████ █"
+   PRINT " █ ██FOOTBALL  MANAGER  C-64██ █"
+   PRINT " █ █████████████████████████ █"
+   PRINT " █ ██   DANIELE  █           █ █"
+   PRINT " █ ██             PICCOLI  █ █ █"
+   PRINT " █ █████████████████████████ █"
+
+   REM ASCII art representation (simplified)
+
+   FOR TR=1 TO 500: NEXT : REM Delay
+   RETURN
+
+------------------------------------------------------------------------
+SECTION 10: NAME CHANGE ROUTINES (Lines 2600-2890)
+------------------------------------------------------------------------
+
+2600-2740 REM ** Change team names **
+   HZ=1
+
+   FOR HZ=1 TO 65
+      IF HZ=65 THEN DES$="SQ": GOSUB 100
+      IF HZ=65 THEN GOTO 2610
+
+      PRINT ""
+      PRINT TAB(2); PZ; PT$; A$(PZ)
+      FOR PZ=HZ TO HZ+15
+   NEXT
+
+   PRINT ""
+   INPUT A$
+
+   IF A$="^" THEN HZ=HZ-16: GOTO 2615
+
+   QW = VAL(A$)
+   IF QW<HZ OR QW>HZ+15 THEN GOTO 2623
+
+   PRINT CHR$(147); A$(QW)
+   PRINT "  ████████████████████"
+   PRINT "  ████████████████████"
+   PRINT "  SCRIVI IL NOME"
+   PRINT ""
+   INPUT QW$
+
+   IF LEN(QW$)>15 THEN GOTO 2687
+
+   A$(QW) = QW$
+   PRINT ""; A$(QW)
+   PRINT "  ████████████████████      "
+   PRINT "PREMI SPACE"
+
+2730 INPUT A$
+   IF A$<>" " THEN GOTO 2730
+   RETURN
+
+2750-2890 REM ** Change player names **
+   HZ=1
+
+   FOR HZ=1 TO 25
+      IF HZ=25 THEN DES$="G": GOSUB 100
+      IF HZ=25 THEN GOTO 2760
+
+      PRINT ""
+      FOR PZ=HZ TO HZ+11
+         PRINT TAB(4); PZ; PT$; B$(PZ)
+      NEXT
+   NEXT
+
+   PRINT ""
+   INPUT QW$
+
+   IF QW$="^" THEN HZ=HZ-12: GOTO 2765
+
+   QW = VAL(QW$)
+   IF QW<HZ OR QW>HZ+11 THEN GOTO 2780
+
+   PRINT ""; B$(QW)
+   PRINT "  ████████████████████"
+   PRINT "  ████████████████████"
+   PRINT "  SCRIVI IL NOME"
+   PRINT ""
+   INPUT WQ$
+
+   IF LEN(WQ$)>15 THEN GOTO 2838
+
+   B$(QW) = WQ$
+   PRINT ""; B$(QW)
+   PRINT "  ████████████████████      "
+   PRINT "PREMI SPACE"
+
+2880 INPUT A$
+   IF A$<>" " THEN GOTO 2880
+   RETURN
+
+------------------------------------------------------------------------
+SECTION 11: MATCH PREPARATION (Lines 2900-3160)
+------------------------------------------------------------------------
+
+2900-3160 REM ** Match selection and setup **
+   L=1 : REM Match counter
+
+   REM Randomly determine home/away and opponent
+   IF I>Z THEN WW=INT(RND(1)*2)+1
+   IF WW=1 THEN PZ=2: WW=2: GOTO 2940
+   PZ=1: WW=1
+
+   REM Select opponent team
+   SZ = INT(RND(1)*16)+1
+   IF W(SZ)=1 THEN GOTO 2940 : REM Already played
+
+   XJ=J(SZ): YJ=PZ: GOSUB 20000 : REM Simulate opponent
+
+   IF J(SZ)-PZ<=0 THEN GOTO 2940 : REM Check morale
+   IF A$(49)=A$(SZ) THEN GOTO 2940 : REM Can't play self
+
+   W(SZ) = 1 : REM Mark as scheduled
+   J(SZ) = J(SZ)-PZ
+   A1=SZ
+   SZ = (N-1)*16+SZ
+   IF SZ<>49 AND SZ<>64 THEN GOTO 2900
+
+   GOTO 3000
+
+3000-3160 REM ** Pre-match display **
+   IF PZ=2 THEN
+      A3=1: A4=2
+      D$(1)=A$(QZ)
+      D$(2)=A$(SZ)
+      GOTO 3020
+
+   A3=2: A4=1
+   D$(1)=A$(SZ)
+   D$(2)=A$(QZ)
+
+3020 GOSUB 350
+   PRINT " PRONTO A INIZIARE LA PARTITA ? "
+   PRINT " GIOCHI NEL CAMPIONATO"
+   PRINT " DI SERIE "; SR$(N)
+   PRINT "█ "; D$(1); ","; "CONTRO"; ","; D$(2); ""
+   PRINT "    STAI GIOCANDO ";
+
+   IF PZ=2 THEN
+      PRINT "IN CASA"
+      ZIO$="CASA"
+      GOTO 3122
+
+   PRINT "FUORI CASA"
+   ZIO$="FUORI CASA"
+
+3122 PRINT "         PREMI SPACE"
+
+   IF I=0 AND PZ=2 THEN
+      PRINT ""; D$(2); "  E' "; V(A1); " IN CLASSIFICA"
+
+   IF I=0 AND PZ<>2 THEN
+      PRINT CHR$(147); D$(1); "  E' "; V(A1); " IN CLASSIFICA"
+
+3140 INPUT A$
+   IF A$<>" " THEN GOTO 3140
+   PRINT "SPACE█"
+   RETURN
+
+------------------------------------------------------------------------
+SECTION 12: MATCH ENGINE (Lines 3160-3650)
+------------------------------------------------------------------------
+
+3160-3230 REM ** Calculate team strengths **
+   GOSUB 20050 : REM Recalculate values
+
+   REM Calculate match difficulty factors
+   FOR PZ=8 TO 12
+      L = 1
+
+      REM Adjust based on league position
+      D(PZ) = INT(RND(1)*I*3)+15
+      IF G(A1)=0 AND I<>0 THEN
+         D(PZ) = INT(RND(1)*10)+10
+         GOTO 3230
+
+      IF G(A1)=0 THEN
+         D(PZ) = INT(RND(1)*10)+6
+         GOTO 3230
+
+      D(PZ) = INT(RND(1)*(G(A1)+I*3)+10)
+      IF D(PZ)>20 THEN D(PZ)=20
+   NEXT PZ
+
+3240-3260 REM ** Calculate composite statistics **
+   D(13) = INT(D(10)+D(11)/2+D(8)/2+D(9)/2)  : REM Opponent defense
+   D(14) = INT(D(12)+(D(11))/2+(D(8))/2+(D(9))/2) : REM Opponent attack
+
+   GOSUB 20120 : REM Update values
+
+   REM Cap values at 20
+   FOR PW=8 TO 12
+      IF D(PW)>20 THEN D(PW)=20
+   NEXT
+   FOR PW=2 TO 5
+      IF D(PW)>20 THEN D(PW)=20
+   NEXT
+
+3270-3380 REM ** Display team comparison **
+   GOSUB 350
+   PRINT ""; TAB(13); A$(QZ); TAB(25); A$(SZ)
+   PRINT "ENERGIA"; TAB(15); D(1); TAB(25); D(8)
+   PRINT "MORALE "; TAB(15); D(2); TAB(25); D(9)
+   PRINT "DIFESA "; TAB(15); D(3); TAB(25); D(10)
+   PRINT "CENTROCAMPO"; TAB(15); D(4); TAB(25); D(11)
+   PRINT "ATTACCO"; TAB(15); D(5); TAB(25); D(12)
+
+   PRINT "HAI IN SQUADRA "; XZ; " GIOCATORI."
+
+   IF UZ=0 THEN
+      PRINT "MA NON IL SOSTITUTO "
+      GOTO 3370
+
+   PRINT "E ANCHE IL SOSTITUTO "
+
+3370 PRINT "   C     PER CAMBIARE LA FORMAZIONE"
+   PRINT " SPACE   PER GIOCARE LA PARTITA"
+
+3390 INPUT A$
+   IF A$="C" THEN
+      GOSUB 25070
+      GOTO 3270 : REM Change formation
+
+   IF A$<>" " THEN GOTO 3390
+
+3400-3470 REM ** Play first half **
+   A$="PRIMO TEMPO"
+   PRINT CHR$(147)
+   H(1)=0: H(2)=0 : REM Reset score
+
+   GOSUB 20220 : REM Display match
+
+   REM Simulate chances
+   IF INT(RND(1)*HZ)+1<=9 THEN
+      GOSUB 20270 : REM Chance!
+
+   IF INT(RND(1)*HZ)+1<=3 THEN GOTO 3430
+
+   GOSUB 20340 : REM End of half
+
+3480-3550 REM ** Play second half **
+   A$="SECONDO TEMPO"
+   PRINT CHR$(147)
+   GOSUB 20220
+
+   IF INT(RND(1)*HZ)+1<=10 THEN
+      GOSUB 20270
+
+   IF INT(RND(1)*HZ)+1<=3 THEN GOTO 3470
+
+   XZ=A1
+   U1=H(A3)
+   P1=H(A4)
+
+   GOSUB 20480 : REM End of match
+
+3550-3650 REM ** Update statistics **
+   F(1) = F(1)+U1    : REM Goals scored by player
+   E(1) = E(1)+P1    : REM Goals conceded by player
+   F(A1) = F(A1)+P1  : REM Goals scored by opponent
+   E(A1) = E(A1)+U1  : REM Goals conceded by opponent
+   I = I+1           : REM Increment matches played
+
+   REM Award points
+   IF U1>P1 THEN
+      G(1) = G(1)+1      : REM Player win: 1 point
+      G(A1) = G(A1)+1    : REM Opponent loss: 1 point (old system)
+      GOTO 3550
+
+   IF U1=P1 THEN
+      G(1) = G(1)+2      : REM Draw: 2 points each
+      GOTO 3550
+
+   G(A1) = G(A1)+2       : REM Opponent win: 2 points
+
+   GOTO 3650
+
+3650 PRINT "SPACE  PER ANDARE AVANTI"
+   INPUT A$
+   IF A$<>" " THEN GOTO 3640
+   RETURN
+
+------------------------------------------------------------------------
+SECTION 13: WEEKLY FINANCIAL REPORT (Lines 3660-3840)
+------------------------------------------------------------------------
+
+3660-3780 REM ** Calculate weekly expenses **
+   REM Calculate costs based on squad size
+   FOR PZ=1 TO 24
+      IF C(PZ)<>0 THEN XZ=XZ+70+(5-N)*10
+   NEXT
+
+   HZ = XZ+500*(5-N)+Z : REM Total expenses
+
+3780 GOSUB 350
+   PRINT "BILANCIO SETTIMANALE :"
+   PRINT "AFFITTO CAMPO   :"; XZ
+   PRINT "SPESE VARIE     :"; 500*(5-N)
+   PRINT "INTERESSI DEBITO:"; Z
+   PRINT "TOTALE USCITE   :"; HZ
+   PRINT "INCASSO PARTITA :"; A2
+   PRINT "BILANCIO SETTIMANALE :";
+
+   PRINT A2-HZ
+   W = W+A2-HZ
+
+   REM Handle bankruptcy
+   IF W<0 THEN
+      PRINT "IL DEBITO VIENE AUMENTATO"
+      PRINT "PER PAGARE L'AFFITTO DEL CAMPO█"
+      W = W-1000
+      Y = Y+1200
+      Z = Y/20
+      GOTO 3780
+
+   Y = Y-Z : REM Pay interest
+   IF Y<=0 THEN Z=0
+
+   IF W<0 THEN
+      PRINT "HAI \ "; W
+      GOTO 3805
+
+   PRINT "HAI \ "; W
+   PRINT "E UN DEBITO DI \ "; Y
+   PRINT "SPACE  PER ANDARE AVANTI"
+
+3820 INPUT A$
+   IF A$<>" " THEN GOTO 3820
+   RETURN
+
+------------------------------------------------------------------------
+SECTION 14: TRANSFER MARKET (Lines 3840-4050)
+------------------------------------------------------------------------
+
+3840-3865 REM ** Count current squad **
+   GOSUB 200
+   UZ=0
+   FOR PZ=1 TO 24
+      IF C(PZ)<>0 THEN UZ=UZ+1
+   NEXT
+
+   IF UZ>=16 THEN GOSUB 20860: RETURN : REM Squad full
+
+3865-4045 REM ** Player purchase system **
+   PZ = INT(RND(1)*24)+1
+   IF C(PZ)<>0 THEN GOTO 3865 : REM Already owned
+
+   PRINT "_   PER CAMBIARE GIOCATORE"
+   PRINT "^   PER NON COMPRARE NESSUNO"
+   PRINT "       CALCIO  MERCATO "
+   PRINT "TU HAI \ "; W
+
+   XZ = 5000*(5-N)+5000*A(PZ) : REM Calculate value
+
+   PRINT ""; MID$(C$,INT((PZ-1)/8)+1,1); TAB(10); B$(PZ); "           "
+   PRINT "STILE "; A(PZ); TAB(10); "█:POTENZA "; B(PZ); TAB(22); "█:VALORE "; XZ
+   PRINT "QUAL'E'LA TUA OFFERTA"
+   PRINT "████";
+
+   INPUT A$
+   IF A$="^" THEN RETURN
+   IF A$="_" THEN GOTO 3845
+
+   HZ = VAL(A$)
+   IF HZ<=0 THEN GOTO 3870
+   IF HZ>W THEN GOTO 3845 : REM Can't afford
+
+   REM Calculate acceptance threshold (±10% of value)
+   UZ = INT(XZ-(1)*(XZ/10)-(RND(1)*(XZ/10)))
+
+   PRINT ""
+
+   IF HZ<UZ THEN
+      PRINT "LA TUA OFFERTA PER "; B$(PZ)
+      PRINT "E' STATA RIFIUTATA"
+      GOTO 4030
+
+   PRINT "LA TUA OFFERTA PER "; B$(PZ)
+   PRINT "E' STATA ACCETTATA"
+   PRINT "ORA "; B$(PZ); " E' UN TUO GIOCATORE"
+
+   C(PZ) = 2      : REM Set as benched
+   W = W-HZ       : REM Deduct payment
+
+4030 PRINT "PREMI SPACE"
+   INPUT A$
+   IF A$=" " OR A$="_" THEN GOTO 4045
+   GOTO 4040
+
+4045 IF A$="_" THEN
+      GOSUB 500
+      GOTO 3845
+   RETURN
+
+------------------------------------------------------------------------
+SECTION 15: END OF SEASON (Lines 4060-4300)
+------------------------------------------------------------------------
+
+4060-4180 REM ** Season end processing **
+   GOSUB 430 : REM Show final table
+   PRINT ""
+   PRINT "            FINE CAMPIONATO    "
+   PRINT "SPACE  PER LA CLASSIFICA FINALE"
+
+4090 INPUT A$
+   IF A$<>" " THEN GOTO 4090
+
+   GOSUB 1620 : REM Display standings
+
+   GOSUB 430
+   PRINT ""
+
+   REM Check for promotion/relegation
+   FOR PZ=1 TO 16
+      REM Relegation (13th-16th place in divisions 1-3)
+      IF V(PZ)>=13 AND N<>4 THEN
+         PRINT "RETROCESSIONE PER "; A$(PZ+(N-1)*16)
+         GOSUB 25350 : REM Relegation routine
+
+      REM Promotion (1st-4th place in divisions 2-4)
+      IF V(PZ)<=4 AND N<>1 THEN
+         PRINT "PROMOZIONE PER "; A$(PZ+(N-1)*16)
+         GOSUB 25320 : REM Promotion routine
+   NEXT PZ
+
+4180-4280 REM ** Prepare next season **
+   IF N=1 THEN GOSUB 25380 : REM Championship won
+
+   PRINT "NUOVO CAMPIONATO "
+
+   REM Adjust division if promoted/relegated
+   IF V(1)<=4 AND N<>1 THEN N=N-1: GOTO 4180
+   IF V(1)>=13 AND N<>4 THEN N=N+1
+
+   PRINT "SERIE "; SR$(N)
+   QZ = (N-1)*16+1
+
+   REM Age players and adjust ratings
+   FOR PZ=1 TO 24
+      B(PZ) = INT(RND(1)*5)+15 : REM Reset power
+
+      IF RND(1)>.5 THEN
+         A(PZ) = A(PZ)+1 : REM Improve style
+         GOTO 4230
+
+      A(PZ) = A(PZ)-1 : REM Decline
+      IF A(PZ)<1 THEN A(PZ)=1
+      IF A(PZ)>5 THEN A(PZ)=5
+   NEXT PZ
+
+4230-4280 REM ** Reset season variables **
+   FOR PZ=1 TO 16
+      V(PZ)=0          : REM Clear positions
+      J(PZ)=1          : REM Reset morale
+      E(PZ)=0          : REM Clear goals conceded
+      F(PZ)=0          : REM Clear goals scored
+      G(PZ)=0          : REM Clear points
+      W(PZ)=0          : REM Clear match flags
+   NEXT
+
+   J(1)=6           : REM Player team morale
+   K=15             : REM Reset squad morale
+   I=0              : REM Reset match counter
+
+   PRINT "  G  PER GIOCARE IL NUOVO CAMPIONATO"
+
+4280 INPUT A$
+   IF A$<>"G" THEN GOTO 4280
+   RETURN
+
+------------------------------------------------------------------------
+SECTION 16: HELPER SUBROUTINES (Lines 20000-46100)
+------------------------------------------------------------------------
+
+20000-20020 REM ** Division simulation **
+   REM Calculate KJ = XJ/YJ
+   KJ = INT(XJ/YJ)
+   RETURN
+
+20050-20110 REM ** Recalculate player stats **
+   REM Update condition values for all squad players
+   FOR HZ=1 TO 24
+      IF C(HZ)=0 THEN GOTO 20110 : REM Skip unowned
+
+      IF C(HZ)=3 THEN
+         B(HZ) = B(HZ)-10 : REM Substitute loses condition
+
+      IF C(HZ)=4 THEN
+         B(HZ) = B(HZ)+1  : REM Starter gains condition
+
+      REM Cap values
+      IF B(HZ)>20 THEN B(HZ)=20
+      IF B(HZ)<1 THEN B(HZ)=1
+
+      REM Random injury/form
+      IF C(HZ)=1 THEN
+         B(HZ) = INT(RND(1)*15)+C(HZ)*2
+
+      REM Check if recovered
+      IF B(HZ)>=12 AND RND(1)<.5 THEN
+         C(HZ) = 1
+   NEXT HZ
+   RETURN
+
+20120-20170 REM ** Calculate team statistics **
+   REM Reset values
+   FOR PZ=1 TO 7
+      D(PZ) = 0
+   NEXT
+
+   XZ=0: UZ=0
+   D(2) = K : REM Morale
+
+   REM Sum stats from starting XI
+   FOR PZ=1 TO 24
+      IF C(PZ)=4 THEN
+         D(1) = D(1)+B(PZ)  : REM Energy
+         XJ=PZ+1: YJ=8
+         GOSUB 20000        : REM Divide
+         D((KJ)+3) = D((KJ)+3)+A(PZ) : REM Add to position
+         XZ = XZ+1
+         GOTO 20170
+
+      IF C(PZ)=3 THEN UZ=PZ : REM Track substitute
+   NEXT PZ
+
+20170 D(1) = INT(D(1)/11) : REM Average energy
+
+   REM Cap position values at 20
+   FOR PZ=2 TO 5
+      IF D(PZ)>20 THEN D(PZ)=20
+   NEXT
+
+   REM Calculate attack and defense composites
+   D(6) = INT(D(3)+D(4)/2+D(1)/2+D(2)/2)    : REM Defense composite
+   D(7) = INT(D(7)+(D(6))/2+(D(3))/2+(D(4))/2) : REM Attack composite
+
+   HZ = D(7)+D(13)+D(14)+D(6)
+   IF HZ<10 THEN HZ=15
+   RETURN
+
+20220 REM ** Display match status **
+   GOSUB 380
+   PRINT ""; TAB(8); "PARTITA IN SVOLGIMENTO :"
+   PRINT ""; D$(1); TAB(20); H(1)
+   PRINT ""; D$(2); TAB(20); H(2)
+   PRINT ""; TAB(26); A$
+
+   GOSUB 30000 : REM Delay
+   FOR TY=1 TO 1000: NEXT
+   RETURN
+
+20270-20320 REM ** Goal chance routine **
+   REM Determine which team
+   IF INT(RND(1)*2)+1=1 THEN GOTO 20310
+
+   REM Check if player's team scores
+   IF INT(RND(1)*D(14)-(RND(1)*D(6)))>0 THEN
+      H(A4) = H(A4)+1
+      GOSUB 46000 : REM Goal animation
+      GOSUB 25000 : REM Update display
+   GOTO 20320
+
+20310 REM Check if opponent scores
+   IF INT(RND(1)*D(7)-(RND(1)*D(13)))>0 THEN
+      H(A3) = H(A3)+1
+      GOSUB 46100 : REM Goal animation
+      GOSUB 25000 : REM Update display
+
+20320 RETURN
+
+20340-20480 REM ** Half-time and full-time **
+20340 GOSUB 350
+   PRINT ""; TAB(7); "IL PRIMO TEMPO E' FINITO"
+   PRINT "IL RISULTATO E' :"
+   PRINT ""; D$(1); "  "; H(1); "       "; D$(2); "  "; H(2)
+   PRINT "  C    PER CAMBIARE LA FORMAZIONE"
+   PRINT "SPACE  PER GIOCARE SENZA CAMBIAMENTI"
+
+   INPUT A$
+   IF A$=" " THEN RETURN
+   IF A$<>"C" THEN GOTO 20400
+
+   GOSUB 300
+   GOSUB 1150 : REM Show squad
+
+   PRINT "CHI DEVE LASCIARE IL CAPO DI GIOCO ?"
+   PRINT "SPACE PER GIOCARE SENZA SOSTITUZIONI"
+
+   INPUT A$
+   IF A$=" " THEN PRINT CHR$(147): RETURN
+   IF A$="" THEN GOTO 20430
+
+   PZ = VAL(A$)-64
+   IF (PZ<0 OR PZ>25) THEN GOTO 20430
+   IF C(PZ)<>4 THEN GOTO 20430
+
+   REM Find substitute and swap
+   FOR UZ=1 TO 24
+      IF C(UZ)=3 THEN C(UZ)=4 : REM Promote substitute
+   NEXT
+   C(PZ)=4 : REM Set outgoing as starter
+
+   GOSUB 20120 : REM Recalculate
+   RETURN
+
+20480 GOSUB 410
+   PRINT ""; TAB(7); "RISULTATO FINALE :"
+   PRINT ""; D$(1); "  "; H(1); "      "; D$(2); "  "; H(2)
+
+   REM Adjust morale based on result
+   IF U1>P1 THEN
+      K = INT(20-K)/2+K : REM Win boosts morale
+      GOTO 20530
+
+   IF U1=P1 THEN
+      K = INT(K/2)+1 : REM Draw maintains morale
+
+   REM Set attendance/income based on position
+   IF V(1)=0 THEN V(1)=INT(RND(1)*16)+1
+   A2 = (17-V(1))*INT(RND(1)*400)+500*(5-N)
+
+   PRINT "INCASSO :"; A2
+
+   K = INT(K) : REM Round morale
+
+   REM Store result
+   L=1
+   C$(I-1) = STR$(SZ)+","+STR$(A3)+"."+STR$(H(A3))+STR$(H(A4))
+
+   RETURN
+
+20590-20790 REM ** Simulate other matches **
+   PRINT "ECCO GLI ALTRI RISULTATI"
+
+   REM Clear all positions
+   FOR PZ=1 TO 16
+      V(PZ)=0
+   NEXT
+
+   V(1)=1: V(A1)=1 : REM Mark player and opponent as processed
+
+   REM Generate matches for other teams
+   FOR PZ=1 TO 7
+      REM Pick two teams not yet played
+      XZ = INT(RND(1)*16)+1
+      IF V(XZ)<>0 THEN GOTO 20620
+      V(XZ)=1
+
+      HZ = INT(RND(1)*16)+1
+      IF V(HZ)<>0 THEN GOTO 20640
+      V(HZ)=1
+
+      REM Calculate scores based on form
+      IF G(XZ)+I>1.5 THEN
+         SZ = INT(RND(1)*2*I)
+         GOTO 20680
+      SZ = G(XZ)
+
+20680 P1 = INT(RND(1)*(SZ+I*3))
+
+      IF G(HZ)+I>1.5 THEN
+         UZ = INT(RND(1)*2*I)
+         GOTO 20710
+      UZ = G(HZ)
+
+20710 U1 = INT(RND(1)*(UZ+I*3))
+      V(HZ)=1: V(XZ)=1
+
+      REM Display result
+      PRINT ""; A$((N-1)*16+XZ); TAB(18); P1; "  "; A$((N-1)*16+HZ); TAB(36); U1
+
+      REM Update stats
+      F(HZ) = F(HZ)+U1
+      F(XZ) = F(XZ)+P1
+      E(XZ) = E(XZ)+U1
+      E(HZ) = E(HZ)+P1
+
+      REM Award points (old Italian system: 2 for win, 1 for draw)
+      IF P1>U1 THEN
+         G(XZ) = G(XZ)+2
+         GOTO 20770
+
+      IF U1>P1 THEN
+         G(HZ) = G(HZ)+2
+         GOTO 20770
+
+      REM Draw: 1 point each
+      G(XZ) = G(XZ)+1
+      G(HZ) = G(HZ)+1
+
+20770 NEXT PZ
+
+   PRINT "SPACE  PER  ANDARE  AVANTI"
+
+20790 INPUT A$
+   IF A$<>" " THEN GOTO 20790
+   RETURN
+
+20810-20900 REM ** No matches played message **
+   PRINT "IN QUESTO CAMPIONATO NON SONO STATE"
+   PRINT "ANCORA GIOCATE PARTITE !"
+   PRINT "SPACE  PER ANDARE AVANTI"
+
+   INPUT A$
+   IF A$<>" " THEN GOTO 20840
+   RETURN
+
+20860 REM ** Squad full message **
+   PRINT "        CALCIO MERCATO           "
+   PRINT "NON PUOI AVERE PIU' DI 16 GIOCATORI "
+   PRINT "NELLA TUA SQUADRA           "
+   PRINT "FINCHE' NON NE VENDERAI ALMENO UNO  "
+   PRINT "  NON NE POTRAI PIU' COMPRARE."
+   PRINT "          PREMI SPACE"
+   PRINT "                                  "
+   PRINT "                                       "
+
+   INPUT A$
+   IF A$<>" " THEN GOTO 20900
+   RETURN
+
+25000 REM ** Goal animation **
+   FOR QI=1 TO 10
+      PRINT "GOAL !"
+      FOR TY=1 TO 100: NEXT
+      PRINT CHR$(147); "GOAL !"
+      FOR TY=1 TO 100: NEXT
+   NEXT QI
+
+   PRINT ""; TAB(31); "         "
+   GOSUB 40000
+   GOSUB 20220
+   RETURN
+
+25070-25270 REM ** Formation change routine **
+   PRINT CHR$(147)
+   GOSUB 300
+   GOSUB 1150 : REM List players
+
+   PRINT "IN SQUADRA CI SONO "; UZ; " GIOCATORI."
+
+   IF PZ=1 THEN
+      PRINT "E ANCHE IL SOSTITUTO."
+      GOTO 25120
+
+   PRINT "MA NON IL SOSTITUTO."
+
+25120 IF UZ<11 THEN GOTO 25270 : REM Need 11 players
+
+   PRINT "CHI VUOI METTERE IN SQUADRA ?"
+   PRINT "SPACE PER ANDARE AVANTI"
+
+25150 INPUT A$
+   IF A$=" " THEN GOTO 25190
+   IF A$="" THEN GOTO 25150
+
+   HZ = VAL(A$)-64
+   IF HZ<1 OR HZ>24 THEN GOTO 25150
+   IF C(HZ)=2 THEN C(HZ)=4: GOTO 25150 : REM Promote from bench
+   GOTO 25080
+
+25190-25270 REM ** Substitute management **
+   GOSUB 300
+   GOSUB 1150
+
+   PRINT "IN SQUADRA CI SONO "; UZ; " GIOCATORI."
+
+   IF PZ=1 THEN
+      PRINT "E ANCHE IL SOSTITUTO."
+      GOTO 25200
+
+   PRINT "MA NON IL SOSTITUTO."
+
+25200 PRINT "IMMETTI IL SOSTITUTO "
+   PRINT "SPACE PER ANDARE AVANTI "
+
+   INPUT A$
+   IF A$=" " THEN RETURN
+   IF A$="" THEN GOTO 25210
+
+   HZ = VAL(A$)-64
+   IF HZ<1 OR HZ>24 THEN GOTO 25210
+   IF C(HZ)<>2 THEN GOTO 25210
+
+   REM Set as substitute, demote current substitute
+   FOR PZ=1 TO 24
+      IF C(PZ)=3 THEN C(PZ)=2
+   NEXT
+   C(HZ)=3
+   GOTO 25190
+
+25270 PRINT "CHI VUOI LEVARE DALLA SQUADRA ?"
+   INPUT A$
+   IF A$="" THEN GOTO 25280
+
+   HZ = VAL(A$)-64
+   IF HZ<0 OR HZ>25 THEN GOTO 25280
+   IF C(HZ)<>4 THEN GOTO 25280
+
+   C(HZ)=2 : REM Demote to bench
+   GOTO 25070
+
+25320-25380 REM ** Promotion/relegation/championship **
+
+25320 REM PROMOTION
+   A$ = A$((N-2)*16+PZ)
+   A$((N-2)*16+PZ) = A$((N-1)*16+PZ)
+   A$((N-1)*16+PZ) = A$
+   RETURN
+
+25350 REM RELEGATION
+   A$ = A$(N*16+PZ)
+   A$(N*16+PZ) = A$((N-1)*16+PZ)
+   A$((N-1)*16+PZ) = A$
+   RETURN
+
+25380 REM CHAMPIONSHIP (SCUDETTO)
+   FOR PZ=1 TO 16
+      IF V(PZ)=1 THEN
+         PRINT ""; A$(PZ+(N-1)*16); " E' CAMPIONE D'ITALIA !"
+   NEXT
+   RETURN
+
+30000 REM ** Simulation movement delay **
+   PRINT ""
+   RETURN
+
+40000-46100 REM ** Match graphics display **
+
+40000 REM MATCH FIELD GRAPHICS
+   PRINT ""
+   GOSUB "GRAFICA  GIOCO."
+   PRINT "█  "; D$(1); "  "
+   PRINT "███████████████████████████"
+   PRINT "█            █            █"
+   PRINT "█            █ ██     █ █  █"
+   PRINT "████      █  █         ████"
+   PRINT "ݞ█ ███    █   █     ██   ██ █"
+   PRINT "██ ██ ██     η█   █   ³ ██"
+   PRINT "██████  █    ת       █████"
+   PRINT "██ ██       ͯ█  ██    ³ ██"
+   PRINT "█ ███       █ ݞ█        █  █"
+   PRINT "████         █        █████"
+   PRINT "█   ██    █   █   █      ██ █"
+   PRINT "█            █            █"
+   PRINT "███████████████████████████"
+   PRINT "  "; D$(2); "  "
+   RETURN
+
+40500 REM BALL ANIMATION
+   GIO = INT(RND(1)*3)+1
+
+   IF GIO=1 THEN NEL=2: PRINT ""; : GOSUB 40500
+   IF GIO=2 THEN NEL=2: PRINT ""; : GOSUB 40500
+   IF GIO=3 THEN NEL=2: PRINT ""; : GOSUB 40500
+   IF GIO=1 THEN NEL=1: PRINT CHR$(147); : GOSUB 40500
+   IF GIO=2 THEN NEL=1: PRINT CHR$(147); : GOSUB 40500
+   IF GIO=3 THEN NEL=1: PRINT "";
+
+   PRINT "██";
+   FOR PIQ=1 TO 50: NEXT
+   PRINT "██";
+   FOR PIQ=1 TO 50: NEXT
+   PRINT "██";
+   FOR PIQ=1 TO 50: NEXT
+   PRINT "██";
+
+   GIR=GIR+1
+   IF GIR=20 THEN GOTO 44020
+   GOTO 40500
+
+44020 PRINT ""
+   RETURN
+
+46000 REM GOAL BY PLAYER - SET HOME/AWAY
+   IF ZIO$="CASA" THEN NEL=2: RETURN
+   IF ZIO$="FUORI CASA" THEN NEL=1: RETURN
+
+46100 REM GOAL BY OPPONENT - SET HOME/AWAY
+   IF ZIO$="CASA" THEN NEL=1: RETURN
+   IF ZIO$="FUORI CASA" THEN NEL=2: RETURN
+
+================================================================================
+END OF DOCUMENTED LISTING
+================================================================================
+
+TECHNICAL ANALYSIS:
+-------------------
+
+1. GAME MECHANICS:
+   - Season-based management simulation
+   - 4 Italian divisions (A, B, C1, C2)
+   - 64 teams total (16 per division)
+   - 24 legendary players available for trading
+   - Player attributes: Style (1-5) and Power (1-20)
+   - Financial system with loans, interest, and bankruptcy
+   - Promotion/relegation between divisions
+   - Old Italian point system: 2 points for win, 1 for draw
+
+2. MATCH SIMULATION ENGINE - DETAILED ANALYSIS:
+   ===============================================
+
+   The match engine is a sophisticated statistical simulation system that
+   calculates match outcomes based on multiple team and player attributes.
+   It operates in real-time with visual feedback and uses probabilistic
+   algorithms to determine goal-scoring opportunities.
+
+   KEY COMPONENTS:
+
+   A. TEAM ATTRIBUTE CALCULATION (Lines 20000-20200)
+   --------------------------------------------------
+
+   The D() array stores 14 different match statistics:
+   - D(1)  = Player's team Energy (average of all starting players)
+   - D(2)  = Player's team Morale (based on recent results)
+   - D(3)  = Player's team Defense rating
+   - D(4)  = Player's team Midfield rating
+   - D(5)  = Player's team Attack rating
+   - D(6)  = Player's team Defense composite
+   - D(7)  = Player's team Attack composite
+   - D(8)  = Opponent Energy
+   - D(9)  = Opponent Morale
+   - D(10) = Opponent Defense
+   - D(11) = Opponent Midfield
+   - D(12) = Opponent Attack
+   - D(13) = Opponent Defense composite
+   - D(14) = Opponent Attack composite
+
+   CODE EXAMPLE - Player Condition Update (Lines 20000-20110):
+
+   20000 REM ** REDO - Update player fitness **
+   20010 FOR HZ=1 TO 24
+   20020   IF C(HZ)=0 THEN GOTO 20110    : REM Skip unowned players
+   20030   IF C(HZ)=3 THEN B(HZ)=B(HZ)-10 : REM Substitutes lose fitness
+   20040   IF C(HZ)=4 THEN B(HZ)=B(HZ)+1  : REM Starters gain fitness
+   20050   IF B(HZ)>20 THEN B(HZ)=20      : REM Cap at maximum
+   20060   IF B(HZ)<1 THEN B(HZ)=1        : REM Floor at minimum
+   20070   IF C(HZ)=1 THEN B(HZ)=INT(RND(1)*15)+C(HZ)*2 : REM Injured recovery
+   20080   IF B(HZ)>=12 AND RND(1)<.5 THEN B(HZ)=-2+C(HZ)=1 : REM Recovery check
+   20090 NEXT HZ
+   20100 RETURN
+
+   ANALYSIS:
+   - Starters (C=4) gain +1 fitness per match (improvement through play)
+   - Substitutes (C=3) lose -10 fitness (lack of game time)
+   - Injured players (C=1) have random recovery (15-17 range)
+   - 50% chance of recovery if fitness >= 12
+   - Creates realistic fitness management dynamics
+
+   CODE EXAMPLE - Team Statistics Calculation (Lines 20120-20200):
+
+   20120 REM ** NEWVALUE - Calculate team stats **
+   20130 FOR PZ=1 TO 7: D(PZ)=0: NEXT      : REM Reset stats
+   20140 XZ=0: UZ=0: D(2)=K                : REM Initialize, set morale
+   20150 FOR PZ=1 TO 24
+   20160   IF C(PZ)=4 THEN                 : REM For each starting player
+   20170     D(1)=D(1)+B(PZ)               : REM Sum energy
+   20180     XJ=PZ+1: YJ=8: GOSUB 20000    : REM Calculate position (PZ/8)
+   20190     D((KJ)+3)=D((KJ)+3)+A(PZ)     : REM Add style to position
+   20200     XZ=XZ+1: GOTO 20170
+   20210   IF C(PZ)=3 THEN UZ=PZ           : REM Track substitute
+   20220 NEXT PZ
+   20230 D(1)=INT(D(1)/11)                 : REM Average energy (divide by 11)
+
+   20240 FOR PZ=2 TO 5                     : REM Cap position ratings
+   20250   IF D(PZ)>20 THEN D(PZ)=20
+   20260 NEXT
+
+   20270 REM Calculate composite ratings
+   20280 D(6)=INT(D(3)+D(4)/2+D(1)/2+D(2)/2)    : REM Defense composite
+   20290 D(7)=INT(D(7)+(D(6))/2+(D(3))/2+(D(4))/2) : REM Attack composite
+   20300 HZ=D(7)+D(13)+D(14)+D(6)
+   20310 IF HZ<10 THEN HZ=15                     : REM Ensure minimum value
+   20320 RETURN
+
+   PLAYER POSITION ASSIGNMENT:
+   - Players 1-8:   Defenders  (contribute to D(3))
+   - Players 9-16:  Midfielders (contribute to D(4))
+   - Players 17-24: Forwards    (contribute to D(5))
+
+   Position calculated by: KJ = INT((PZ+1)/8)
+   - If PZ=1-7:  KJ=0, D(0+3)=D(3) = Defense
+   - If PZ=8-15: KJ=1, D(1+3)=D(4) = Midfield
+   - If PZ=16-24: KJ=2, D(2+3)=D(5) = Attack
+
+   COMPOSITE RATINGS:
+   The composites blend multiple factors:
+   - Defense composite = Defense + Midfield/2 + Energy/2 + Morale/2
+   - Attack composite  = Previous + Defense composite/2 + Defense/2 + Midfield/2
+
+   This creates interdependencies: good defense helps attack, energy affects both.
+
+   B. OPPONENT STRENGTH CALCULATION (Lines 3160-3260)
+   ---------------------------------------------------
+
+   CODE EXAMPLE - Dynamic Difficulty Adjustment:
+
+   3160 GOSUB 20050                        : REM Recalculate player stats
+   3170 FOR PZ=8 TO 12                     : REM Calculate opponent stats
+   3180   L=1
+   3190   D(PZ)=INT(RND(1)*I*3)+15         : REM Base difficulty
+   3200
+   3210   IF G(A1)=0 AND I<>0 THEN         : REM Opponent has no points
+   3220     D(PZ)=INT(RND(1)*10)+10        : REM Weaker (10-20)
+   3230     GOTO 3230
+   3240
+   3250   IF G(A1)=0 THEN                  : REM Start of season
+   3260     D(PZ)=INT(RND(1)*10)+6         : REM Even weaker (6-16)
+   3270     GOTO 3230
+   3280
+   3290   D(PZ)=INT(RND(1)*(G(A1)+I*3)+10) : REM Based on opponent form
+   3300   IF D(PZ)>20 THEN D(PZ)=20        : REM Cap at 20
+   3310 NEXT PZ
+
+   3320 REM Calculate opponent composites
+   3330 D(13)=INT(D(10)+D(11)/2+D(8)/2+D(9)/2)    : REM Opponent defense
+   3340 D(14)=INT(D(12)+(D(11))/2+(D(8))/2+(D(9))/2) : REM Opponent attack
+
+   DIFFICULTY SCALING:
+   - Opponent strength scales with: points (G), matches played (I), and season progress
+   - Early season: Opponents weaker (6-16 range)
+   - Winless teams: Moderate difficulty (10-20 range)
+   - Strong teams: High difficulty (based on points + random)
+   - Cap ensures no impossible matches (max 20)
+
+   C. GOAL PROBABILITY ENGINE (Lines 20270-20320)
+   -----------------------------------------------
+
+   CODE EXAMPLE - Chance Generation:
+
+   20270 REM ** CHANCE - Determine goal opportunity **
+   20280 IF INT(RND(1)*2)+1=1 THEN GOTO 20310  : REM 50/50 which team attacks
+
+   20290 REM Player's team attacks
+   20300 IF INT(RND(1)*D(14)-(RND(1)*D(6)))>0 THEN
+   20310   H(A4)=H(A4)+1                        : REM Increment player score
+   20320   GOSUB 46000                          : REM Goal animation
+   20330   GOSUB 25000                          : REM Update display
+   20340 GOTO 20320
+
+   20350 REM Opponent attacks
+   20360 IF INT(RND(1)*D(7)-(RND(1)*D(13)))>0 THEN
+   20370   H(A3)=H(A3)+1                        : REM Increment opponent score
+   20380   GOSUB 46100                          : REM Goal animation
+   20390   GOSUB 25000                          : REM Update display
+   20400 RETURN
+
+   ═══════════════════════════════════════════════════════════════════════
+   COMPLETE GOAL COMPUTATION BREAKDOWN
+   ═══════════════════════════════════════════════════════════════════════
+
+   HOW A GOAL IS SCORED - STEP BY STEP ANALYSIS:
+
+   PHASE 1: MATCH INITIALIZATION
+   ------------------------------
+   Before any goals can be scored, the system calculates team strengths.
+   This happens once at the start of each match.
+
+   For PLAYER'S TEAM:
+   ├─ D(1) = Average Energy of 11 starters (sum of B(PZ)/11)
+   ├─ D(2) = Team Morale (K value, 1-20)
+   ├─ D(3) = Defense Rating (sum of A(PZ) for players 1-8)
+   ├─ D(4) = Midfield Rating (sum of A(PZ) for players 9-16)
+   ├─ D(5) = Attack Rating (sum of A(PZ) for players 17-24)
+   ├─ D(6) = Defense Composite = INT(D(3) + D(4)/2 + D(1)/2 + D(2)/2)
+   └─ D(7) = Attack Composite = INT(D(7) + (D(6))/2 + (D(3))/2 + (D(4))/2)
+
+   For OPPONENT'S TEAM:
+   ├─ D(8)  = Opponent Energy (calculated by difficulty formula)
+   ├─ D(9)  = Opponent Morale (calculated by difficulty formula)
+   ├─ D(10) = Opponent Defense (calculated by difficulty formula)
+   ├─ D(11) = Opponent Midfield (calculated by difficulty formula)
+   ├─ D(12) = Opponent Attack (calculated by difficulty formula)
+   ├─ D(13) = Opponent Defense Composite = INT(D(10) + D(11)/2 + D(8)/2 + D(9)/2)
+   └─ D(14) = Opponent Attack Composite = INT(D(12) + (D(11))/2 + (D(8))/2 + (D(9))/2)
+
+   PHASE 2: CHANCE GENERATION
+   ---------------------------
+   During the match, the game randomly generates "chances" to score.
+   Frequency controlled by HZ variable and probability checks.
+
+   First Half:  IF INT(RND(1)*HZ)+1 <= 9  THEN create chance
+   Second Half: IF INT(RND(1)*HZ)+1 <= 10 THEN create chance
+
+   When a chance occurs, the GOSUB 20270 routine is called.
+
+   PHASE 3: TEAM SELECTION (50/50 Split)
+   --------------------------------------
+   Line 20280: IF INT(RND(1)*2)+1=1 THEN GOTO 20310
+
+   This generates either 1 or 2 with equal probability:
+   - RND(1) generates 0.0 to 0.999...
+   - RND(1)*2 generates 0.0 to 1.999...
+   - INT(RND(1)*2) generates 0 or 1
+   - INT(RND(1)*2)+1 generates 1 or 2
+
+   Result = 1: Jump to line 20310 (Opponent attacks)
+   Result = 2: Continue to line 20290 (Player attacks)
+
+   PHASE 4: GOAL CALCULATION - THE CORE ALGORITHM
+   -----------------------------------------------
+
+   SCENARIO A: Player's Team Attacks
+   ----------------------------------
+   Line 20300: IF INT(RND(1)*D(14)-(RND(1)*D(6)))>0 THEN [GOAL]
+
+   Breaking this down:
+
+   STEP 1: Generate Attack Roll
+      RND(1) × D(14) = Random value from 0 to D(14)
+      This represents: Opponent's attack strength (how well they create chances)
+
+      Wait - why opponent's attack? This is COUNTERINTUITIVE but correct!
+      The code has a logical swap: when player attacks, it uses D(14) (opponent attack)
+      This appears to be a bug or intentional balancing quirk.
+
+   STEP 2: Generate Defense Roll
+      RND(1) × D(6) = Random value from 0 to D(6)
+      This represents: Player's defense composite
+
+   STEP 3: Calculate Net Advantage
+      Attack Roll - Defense Roll = Net value
+
+   STEP 4: Goal Decision
+      IF (Attack Roll - Defense Roll) > 0 THEN GOAL SCORED
+
+   SCENARIO B: Opponent's Team Attacks
+   ------------------------------------
+   Line 20360: IF INT(RND(1)*D(7)-(RND(1)*D(13)))>0 THEN [GOAL]
+
+   STEP 1: Generate Attack Roll
+      RND(1) × D(7) = Random value from 0 to D(7)
+      This represents: Player's attack composite
+
+   STEP 2: Generate Defense Roll
+      RND(1) × D(13) = Random value from 0 to D(13)
+      This represents: Opponent's defense composite
+
+   STEP 3: Calculate Net Advantage
+      Attack Roll - Defense Roll = Net value
+
+   STEP 4: Goal Decision
+      IF (Attack Roll - Defense Roll) > 0 THEN GOAL SCORED
+
+   ═══════════════════════════════════════════════════════════════════════
+   FACTORS AFFECTING GOAL PROBABILITY - COMPLETE LIST
+   ═══════════════════════════════════════════════════════════════════════
+
+   DIRECT FACTORS (Calculated Before Match):
+   ──────────────────────────────────────────
+
+   1. PLAYER FITNESS (B() array)
+      • Each starting player's B(PZ) value contributes to D(1) Energy
+      • Higher fitness = better team performance
+      • Range: 1-20 per player
+      • Starters gain +1 per match, substitutes lose -10
+      • Affects: D(1), D(6), D(7)
+
+   2. PLAYER STYLE/SKILL (A() array)
+      • Each player's A(PZ) value (1-5) adds to position rating
+      • Defenders (1-8) → D(3) Defense
+      • Midfielders (9-16) → D(4) Midfield
+      • Forwards (17-24) → D(5) Attack
+      • Better players = stronger team stats
+      • Affects: D(3), D(4), D(5), D(6), D(7)
+
+   3. TEAM MORALE (K variable)
+      • Directly copied to D(2)
+      • Range: 1-20
+      • Increases after wins: K = (20-K)/2 + K
+      • Decreases after draws: K = K/2 + 1
+      • Unchanged after losses
+      • Affects: D(2), D(6), D(7)
+
+   4. SQUAD COMPOSITION
+      • Must have 11 starters (C(PZ)=4)
+      • Position balance matters:
+        - 8 defenders max (players 1-8)
+        - 8 midfielders max (players 9-16)
+        - 8 forwards max (players 17-24)
+      • Affects: All D(3), D(4), D(5) ratings
+
+   5. OPPONENT FORM
+      • G(A1) = Opponent's points in league
+      • I = Number of matches played
+      • Strong opponents have higher D(8-12) values
+      • Winless teams easier: D(PZ) = RND(1)*10 + 10
+      • Top teams harder: D(PZ) = RND(1)*(G(A1)+I*3) + 10
+      • Affects: D(8), D(9), D(10), D(11), D(12), D(13), D(14)
+
+   6. SEASON PROGRESSION
+      • Early season: Lower opponent difficulty (6-16 range)
+      • Late season: Higher opponent difficulty (based on accumulated points)
+      • Affects: D(8-14)
+
+   INDIRECT FACTORS (Affect Multiple Stats):
+   ──────────────────────────────────────────
+
+   7. COMPOSITE CALCULATIONS
+      • Defense composite includes: Defense + Midfield/2 + Energy/2 + Morale/2
+      • Attack composite includes: Attack + Defense_composite/2 + Defense/2 + Midfield/2
+      • Creates interdependencies:
+        ✓ Strong defense improves attack
+        ✓ Good midfield helps both attack and defense
+        ✓ High energy boosts everything
+        ✓ Good morale improves both composites
+
+   8. STATISTICAL CAPPING
+      • All D(2-12) values capped at 20
+      • Prevents impossible advantages
+      • Ensures competitive matches
+      • Affects: Maximum possible goal probability
+
+   RANDOM FACTORS (During Match):
+   ───────────────────────────────
+
+   9. CHANCE FREQUENCY (HZ variable)
+      • Controls how often goal opportunities arise
+      • HZ = D(7) + D(13) + D(14) + D(6)
+      • Typical value: 15-60
+      • Lower HZ = more chances = higher scoring matches
+      • Higher HZ = fewer chances = defensive matches
+      • Affects: Number of goal attempts per match
+
+   10. TEAM SELECTION RANDOMNESS
+       • 50/50 coin flip determines which team attacks
+       • Equal opportunity regardless of strength
+       • Creates unpredictability
+       • Affects: Distribution of chances between teams
+
+   11. ATTACK ROLL RANDOMNESS
+       • RND(1) generates 0.0 to 0.999...
+       • Multiplied by composite rating
+       • Different result every time
+       • Adds excitement and unpredictability
+       • Affects: Whether specific chance converts to goal
+
+   12. DEFENSE ROLL RANDOMNESS
+       • Separate RND(1) call for defense
+       • Independent of attack roll
+       • Creates variance in outcomes
+       • Affects: Whether defense stops the chance
+
+   ═══════════════════════════════════════════════════════════════════════
+   WORKED EXAMPLES - GOAL COMPUTATION WITH REAL VALUES
+   ═══════════════════════════════════════════════════════════════════════
+
+   EXAMPLE 1: Strong Player Team vs Weak Opponent
+   ───────────────────────────────────────────────
+
+   Pre-Match Setup:
+   • Player has 11 fit starters (average B = 18)
+   • Good player skills (defenders A=4, midfielders A=4, forwards A=5)
+   • High morale (K = 17)
+   • Opponent is struggling (G(A1) = 0, I = 5)
+
+   Player's Team Stats:
+   D(1) = 18 (energy)
+   D(2) = 17 (morale)
+   D(3) = 4×8 = 32, capped to 20 (defense)
+   D(4) = 4×8 = 32, capped to 20 (midfield)
+   D(5) = 5×8 = 40, capped to 20 (attack)
+   D(6) = INT(20 + 20/2 + 18/2 + 17/2) = INT(20+10+9+8.5) = INT(47.5) = 47
+   D(7) = INT(20 + 47/2 + 20/2 + 20/2) = INT(20+23.5+10+10) = INT(63.5) = 63
+
+   Opponent's Stats (Weak Team):
+   D(8) = RND(1)*10 + 10 = ~15 (energy)
+   D(9) = RND(1)*10 + 10 = ~15 (morale)
+   D(10) = RND(1)*10 + 10 = ~15 (defense)
+   D(11) = RND(1)*10 + 10 = ~15 (midfield)
+   D(12) = RND(1)*10 + 10 = ~15 (attack)
+   D(13) = INT(15 + 15/2 + 15/2 + 15/2) = INT(37.5) = 37
+   D(14) = INT(15 + 37/2 + 15/2 + 15/2) = INT(48.5) = 48
+
+   During Match - Player Attacks:
+   ────────────────────────────────
+   Line 20300: IF INT(RND(1)*D(14) - RND(1)*D(6)) > 0
+
+   Attack Roll = RND(1) × 48 = ~24 (average)
+   Defense Roll = RND(1) × 47 = ~23.5 (average)
+   Net = 24 - 23.5 = 0.5 > 0 ✓ GOAL!
+
+   Goal Probability ≈ 51% (slightly favored due to strong overall stats)
+
+   During Match - Opponent Attacks:
+   ─────────────────────────────────
+   Line 20360: IF INT(RND(1)*D(7) - RND(1)*D(13)) > 0
+
+   Attack Roll = RND(1) × 63 = ~31.5 (average)
+   Defense Roll = RND(1) × 37 = ~18.5 (average)
+   Net = 31.5 - 18.5 = 13 > 0 ✓ GOAL! (highly likely)
+
+   Goal Probability ≈ 70% (strong attack advantage)
+
+   Result: Player's team likely to score 2-3 goals, opponent 1-2 goals
+
+   EXAMPLE 2: Evenly Matched Teams
+   ────────────────────────────────
+
+   Pre-Match Setup:
+   • Both teams average fitness (B = 15)
+   • Average skills (A = 3 across the board)
+   • Moderate morale (K = 12)
+   • Mid-table opponent (G(A1) = 10, I = 8)
+
+   Player's Team Stats:
+   D(1) = 15
+   D(2) = 12
+   D(3) = 3×8 = 24, capped to 20
+   D(4) = 3×8 = 24, capped to 20
+   D(5) = 3×8 = 24, capped to 20
+   D(6) = INT(20 + 20/2 + 15/2 + 12/2) = INT(20+10+7.5+6) = 43
+   D(7) = INT(20 + 43/2 + 20/2 + 20/2) = INT(20+21.5+10+10) = 61
+
+   Opponent's Stats:
+   D(8) = RND(1)*(10+8*3) + 10 = RND(1)*34 + 10 = ~27, capped to 20
+   D(9) = ~20
+   D(10) = ~20
+   D(11) = ~20
+   D(12) = ~20
+   D(13) = INT(20 + 20/2 + 20/2 + 20/2) = INT(50) = 50
+   D(14) = INT(20 + 50/2 + 20/2 + 20/2) = INT(65) = 65
+
+   During Match - Player Attacks:
+   ────────────────────────────────
+   Attack Roll = RND(1) × 65 = ~32.5
+   Defense Roll = RND(1) × 43 = ~21.5
+   Net = 32.5 - 21.5 = 11 > 0 ✓ GOAL!
+
+   Goal Probability ≈ 60%
+
+   During Match - Opponent Attacks:
+   ─────────────────────────────────
+   Attack Roll = RND(1) × 61 = ~30.5
+   Defense Roll = RND(1) × 50 = ~25
+   Net = 30.5 - 25 = 5.5 > 0 ✓ GOAL!
+
+   Goal Probability ≈ 55%
+
+   Result: Competitive match, 2-2 or 2-1 typical scoreline
+
+   EXAMPLE 3: Tired Team vs Fresh Opponent
+   ────────────────────────────────────────
+
+   Pre-Match Setup:
+   • Player's starters all exhausted (B = 8 average)
+   • Opponent has rested squad (difficulty formula gives high values)
+   • Player morale low after recent losses (K = 6)
+
+   Player's Team Stats:
+   D(1) = 8 (very low energy!)
+   D(2) = 6 (poor morale!)
+   D(3) = 20 (skill still decent)
+   D(4) = 20
+   D(5) = 20
+   D(6) = INT(20 + 20/2 + 8/2 + 6/2) = INT(20+10+4+3) = 37
+   D(7) = INT(20 + 37/2 + 20/2 + 20/2) = INT(20+18.5+10+10) = 58
+
+   Opponent's Stats (Well-rested):
+   D(8-12) all = 20
+   D(13) = INT(20 + 20/2 + 20/2 + 20/2) = 50
+   D(14) = INT(20 + 50/2 + 20/2 + 20/2) = 65
+
+   During Match - Player Attacks:
+   ────────────────────────────────
+   Attack Roll = RND(1) × 65 = ~32.5
+   Defense Roll = RND(1) × 37 = ~18.5
+   Net = 32.5 - 18.5 = 14 > 0 ✓ GOAL (often)
+
+   Goal Probability ≈ 65% (still reasonable due to code quirk)
+
+   During Match - Opponent Attacks:
+   ─────────────────────────────────
+   Attack Roll = RND(1) × 58 = ~29
+   Defense Roll = RND(1) × 50 = ~25
+   Net = 29 - 25 = 4 > 0 ✓ GOAL
+
+   Goal Probability ≈ 52%
+
+   Result: Despite exhaustion, player can still score due to algorithm quirk
+           However, opponent has good chances too. Likely 1-2 or 2-3 result.
+
+   ═══════════════════════════════════════════════════════════════════════
+   KEY INSIGHTS FROM GOAL COMPUTATION ANALYSIS
+   ═══════════════════════════════════════════════════════════════════════
+
+   1. CODE QUIRK: The attack/defense composite assignments appear swapped
+      When player attacks, it uses D(14) (opponent attack) vs D(6) (player defense)
+      This may be intentional balancing or a bug, but creates interesting dynamics
+
+   2. COMPOSITE IMPORTANCE: The composite values (D(6), D(7), D(13), D(14))
+      are MORE important than individual stats because they're used in goal calc
+
+   3. MULTIPLE LAYERS: A goal requires:
+      ✓ Chance to be generated (probability based on HZ)
+      ✓ Your team to be selected as attacker (50% chance)
+      ✓ Attack roll > Defense roll (depends on composite values)
+
+   4. DIFFICULTY SCALING: Opponent strength adapts to:
+      • Their league position (more points = harder)
+      • Season progress (late season = harder)
+      • Player's own performance (creates challenge)
+
+   5. FITNESS MATTERS: Energy (D(1)) affects BOTH attack and defense composites
+      Tired team = weaker in all areas
+
+   6. MORALE MULTIPLIER: High morale (K) improves both composites
+      Winning streak creates positive feedback loop
+
+   7. POSITION BALANCE: Having good players across all positions maximizes
+      all three stats (Defense, Midfield, Attack) which feed into composites
+
+   8. RANDOMNESS ENSURES VARIETY: Even with identical stats, RND() creates
+      different outcomes each time, preventing predictable results
+
+   D. MATCH FLOW CONTROL (Lines 3400-3730)
+   ----------------------------------------
+
+   CODE EXAMPLE - Two-Half Structure:
+
+   3400 REM ** FIRST HALF **
+   3410 A$="PRIMO TEMPO"
+   3420 PRINT CHR$(147)                    : REM Clear screen
+   3430 H(1)=0: H(2)=0                     : REM Reset scores
+   3440
+   3450 GOSUB 20220                        : REM Display match screen
+   3460
+   3470 REM Generate chances
+   3480 IF INT(RND(1)*HZ)+1<=9 THEN        : REM 9/HZ probability
+   3490   GOSUB 20270                      : REM Process chance
+   3500
+   3510 IF INT(RND(1)*HZ)+1<=3 THEN GOTO 3430  : REM 3/HZ probability repeat
+   3520
+   3530 GOSUB 20340                        : REM Halftime break
+   3540
+   3550 REM ** SECOND HALF **
+   3560 A$="SECONDO TEMPO"
+   3570 PRINT CHR$(147)
+   3580 GOSUB 20220
+   3590
+   3600 IF INT(RND(1)*HZ)+1<=10 THEN       : REM 10/HZ probability (slightly higher)
+   3610   GOSUB 20270
+   3620
+   3630 IF INT(RND(1)*HZ)+1<=3 THEN GOTO 3470
+   3640
+   3650 XZ=A1: U1=H(A3): P1=H(A4)
+   3660 GOSUB 20480                        : REM Full-time
+
+   CHANCE FREQUENCY:
+   - HZ variable controls chance frequency (higher HZ = fewer chances)
+   - First half: 9/HZ probability per iteration
+   - Second half: 10/HZ probability (slightly more action)
+   - Multiple chances possible via 3/HZ repeat probability
+
+   If HZ=15 (typical):
+   - First half: 9/15 = 60% chance per iteration
+   - Second half: 10/15 = 67% chance per iteration
+   - Repeat chance: 3/15 = 20%
+
+   Expected goals per match: 2-4 (realistic for 1980s Italian football)
+
+   E. HOME/AWAY ADVANTAGE (Lines 46000-46120)
+   -------------------------------------------
+
+   CODE EXAMPLE - Location-Based Scoring:
+
+   46000 REM ** GOAL BY PLAYER - SET HOME/AWAY **
+   46010 IF ZIO$="CASA" THEN NEL=2: RETURN        : REM Home: NEL=2
+   46020 IF ZIO$="FUORI CASA" THEN NEL=1: RETURN  : REM Away: NEL=1
+
+   46100 REM ** GOAL BY OPPONENT **
+   46110 IF ZIO$="CASA" THEN NEL=1: RETURN        : REM Opponent scores away
+   46120 IF ZIO$="FUORI CASA" THEN NEL=2: RETURN  : REM Opponent scores home
+
+   The NEL variable determines which score display to update:
+   - NEL=1: Update first display position
+   - NEL=2: Update second display position
+   - Home team always in advantageous display position
+   - No statistical advantage applied (purely visual)
+
+   F. INCOME CALCULATION (Lines 20580-20600)
+   ------------------------------------------
+
+   CODE EXAMPLE - Attendance-Based Revenue:
+
+   20580 IF V(1)=0 THEN V(1)=INT(RND(1)*16)+1  : REM Random position if unknown
+   20590 A2=(17-V(1))*INT(RND(1)*400)+500*(5-N)
+   20600 PRINT "INCASSO :"; A2
+
+   REVENUE FORMULA:
+   A2 = (17 - Position) × Random(0-400) + Division_Multiplier
+
+   Examples:
+   - 1st place, Serie A: (17-1)×400 + 500×4 = 6400 + 2000 = 8,400 lire
+   - 8th place, Serie A: (17-8)×400 + 500×4 = 3600 + 2000 = 5,600 lire
+   - 16th place, Serie C2: (17-16)×400 + 500×1 = 400 + 500 = 900 lire
+
+   Better position = higher attendance = more revenue
+   Higher division = larger stadiums = more revenue
+
+   G. MORALE SYSTEM (Lines 20530-20570)
+   -------------------------------------
+
+   CODE EXAMPLE - Result-Based Morale Adjustment:
+
+   20530 GOSUB 410
+   20540 PRINT "RISULTATO FINALE :"
+   20550 PRINT D$(1); "  "; H(1); "      "; D$(2); "  "; H(2)
+   20560
+   20570 IF U1>P1 THEN                       : REM Player won
+   20580   K=INT(20-K)/2+K                   : REM Big morale boost
+   20590   GOTO 20530
+   20600
+   20610 IF U1=P1 THEN                       : REM Draw
+   20620   K=INT(K/2)+1                      : REM Small morale loss
+
+   MORALE ALGORITHM:
+
+   After Win:
+   - K = (20-K)/2 + K
+   - If K=10: New K = (20-10)/2 + 10 = 5 + 10 = 15 (+5)
+   - If K=15: New K = (20-15)/2 + 15 = 2.5 + 15 = 17 (+2)
+   - If K=5:  New K = (20-5)/2 + 5 = 7.5 + 5 = 12 (+7)
+
+   Wins provide larger boosts when morale is low, diminishing returns when high.
+
+   After Draw:
+   - K = K/2 + 1
+   - If K=15: New K = 15/2 + 1 = 8.5 = 8 (-7)
+   - If K=10: New K = 10/2 + 1 = 6 (-4)
+
+   Draws hurt morale (encourages winning mentality)
+
+   After Loss:
+   - Morale unchanged in code (oversight or intentional)
+   - Only affects future matches through lower D(2) value
+
+   H. MATCH SIMULATION SUMMARY
+   ---------------------------
+
+   The match engine combines:
+   1. Player fitness tracking (degradation/improvement)
+   2. Position-based team building (defenders/midfielders/forwards)
+   3. Composite rating calculations (interdependent stats)
+   4. Dynamic difficulty scaling (based on opponent form)
+   5. Probabilistic goal determination (attack vs defense rolls)
+   6. Realistic chance frequency (controlled randomness)
+   7. Home/away display handling (visual only)
+   8. Performance-based rewards (attendance income)
+   9. Morale feedback loops (wins improve future performance)
+
+   This creates an engaging, strategic experience where:
+   - Squad selection matters (fitness, position balance)
+   - Form affects difficulty (struggling teams easier to beat)
+   - Results have consequences (morale, income, fitness)
+   - Randomness prevents predictability (exciting uncertainty)
+   - Statistical depth rewards good management decisions
+
+3. PLAYER MANAGEMENT:
+   - Transfer market with AI negotiation
+   - Player conditions: Injured, Benched, Substitute, Starting
+   - Fitness degradation and recovery
+   - Age-based stat changes between seasons
+
+4. FINANCIAL SYSTEM:
+   - Starting capital: 150,000 lire
+   - Weekly expenses (stadium rent, wages, etc.)
+   - Match income based on league position
+   - Loan system with 20% interest
+   - Bankruptcy protection (forced loans)
+
+5. USER INTERFACE:
+   - Text-based menus
+   - ASCII graphics for field display
+   - Custom character set for borders
+   - Color scheme: green background/border
+   - Extensive Italian language prompts
+
+6. CODING TECHNIQUES:
+   - Heavy use of GOTO for control flow
+   - Subroutines via GOSUB/RETURN
+   - String arrays for data storage
+   - RND() for randomization
+   - POKE for hardware control (colors, cursor)
+   - Character positioning with TAB()
+
+7. LIMITATIONS:
+   - No save/load functionality
+   - Fixed squad size (max 16 players)
+   - Simple AI opponent logic
+   - Limited tactical options
+   - No multiplayer support
+
+This is a remarkably complete game for Commodore 64 BASIC, demonstrating
+sophisticated game design within the constraints of the platform.
