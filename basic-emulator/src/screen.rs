@@ -119,8 +119,7 @@ impl Screen {
                     continue;
                 }
                 0x13 => {
-                    // HOME (clear screen)
-                    *buffer = vec![vec![ScreenCell::new(); SCREEN_WIDTH]; SCREEN_HEIGHT];
+                    // HOME (move cursor to 0,0)
                     x = 0;
                     y = 0;
                     continue;
