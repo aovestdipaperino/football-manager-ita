@@ -35,10 +35,27 @@ impl Value {
     pub fn to_display_string(&self) -> String {
         match self {
             Value::Number(n) => {
-                if n.fract() == 0.0 && n.abs() < 1e10 {
+                // C64-style number formatting
+                let formatted = if n.fract() == 0.0 && n.abs() < 1e10 {
+                    // Integer display
                     format!("{}", *n as i64)
                 } else {
-                    format!("{}", n)
+                    // Float display - limit to 9 significant digits like C64
+                    // C64 BASIC shows max 9 digits after the decimal point
+                    let s = format!("{:.9}", n);
+                    // Trim trailing zeros after decimal point
+                    let mut result = s;
+                    if result.contains('.') {
+                        result = result.trim_end_matches('0').trim_end_matches('.').to_string();
+                    }
+                    result
+                };
+
+                // Add leading space for positive numbers (C64 sign alignment)
+                if *n >= 0.0 {
+                    format!(" {}", formatted)
+                } else {
+                    formatted
                 }
             }
             Value::String(s) => s.clone(),

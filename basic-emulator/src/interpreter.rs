@@ -165,7 +165,15 @@ impl Interpreter {
                     let value = self.eval_expr(expr)?;
                     let text = value.to_display_string();
                     self.screen.print(&text);
-                    column += text.len();
+
+                    // C64 adds a trailing space after numbers (but not strings)
+                    let add_space = matches!(value, Value::Number(_));
+                    if add_space {
+                        self.screen.print(" ");
+                        column += text.len() + 1;
+                    } else {
+                        column += text.len();
+                    }
                 }
                 PrintItem::Tab(expr) => {
                     let col = self.eval_expr(expr)?.as_int()? as usize;

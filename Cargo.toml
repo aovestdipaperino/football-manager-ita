@@ -1,9 +1,8 @@
-[package]
-name = "football_manager_tui"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = ["tui", "basic-emulator"]
+resolver = "2"
 
-[dependencies]
+[workspace.dependencies]
 ratatui = "0.28"
 crossterm = "0.28"
 rand = "0.8"

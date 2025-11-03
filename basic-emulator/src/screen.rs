@@ -150,7 +150,7 @@ impl Screen {
         let buffer = self.buffer.lock().unwrap();
         buffer
             .iter()
-            .map(|row| row.iter().collect::<String>())
+            .map(|row| row.iter().collect::<String>().trim_end().to_string())
             .collect::<Vec<_>>()
             .join("\n")
     }
