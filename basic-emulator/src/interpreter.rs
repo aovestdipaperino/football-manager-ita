@@ -137,11 +137,13 @@ impl Interpreter {
         match statement {
             Statement::Print(stmt) => self.exec_print(stmt),
             Statement::Input(stmt) => self.exec_input(stmt),
+            Statement::Get(var) => self.exec_get(var),
             Statement::Let(stmt) => self.exec_let(stmt),
             Statement::If(stmt) => self.exec_if(stmt),
             Statement::Goto(line) => self.exec_goto(*line),
             Statement::Gosub(line) => self.exec_gosub(*line),
             Statement::Return => self.exec_return(),
+            Statement::Run => self.exec_run(),
             Statement::For(stmt) => self.exec_for(stmt),
             Statement::Next(var) => self.exec_next(var),
             Statement::Dim(decls) => self.exec_dim(decls),
@@ -222,6 +224,23 @@ impl Interpreter {
         Ok(())
     }
 
+    fn exec_get(&mut self, variable: &str) -> Result<(), String> {
+        // GET reads a single character without waiting for Enter
+        // For now, treat it like INPUT but store empty string if no input yet
+        // This is a simplified implementation - real C64 GET doesn't wait
+        if self.waiting_for_input {
+            return Ok(());
+        }
+
+        // On C64, GET doesn't wait - it reads immediately or gets empty string
+        // For our TUI implementation, we'll treat it like INPUT for simplicity
+        self.waiting_for_input = true;
+        self.input_variable = Some(variable.to_string());
+        self.statement_idx -= 1; // Stay on this statement until input is complete
+
+        Ok(())
+    }
+
     fn exec_let(&mut self, stmt: &LetStatement) -> Result<(), String> {
         let value = self.eval_expr(&stmt.value)?;
 
@@ -287,6 +306,25 @@ impl Interpreter {
 
         self.current_line = Some(line);
         self.statement_idx = idx;
+        Ok(())
+    }
+
+    fn exec_run(&mut self) -> Result<(), String> {
+        // RUN restarts the program from the beginning
+        // Clear all variables and stacks
+        self.variables.clear();
+        self.arrays.clear();
+        self.array_dimensions.clear();
+        self.gosub_stack.clear();
+        self.for_stack.clear();
+        self.data_pointer = 0;
+
+        // Start at first line
+        if let Some(&first_line) = self.program.lines.keys().next() {
+            self.current_line = Some(first_line);
+            self.statement_idx = 0;
+        }
+
         Ok(())
     }
 

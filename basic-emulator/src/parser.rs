@@ -4,11 +4,13 @@ use std::collections::BTreeMap;
 pub enum Statement {
     Print(PrintStatement),
     Input(InputStatement),
+    Get(String),  // GET variable - reads single character
     Let(LetStatement),
     If(IfStatement),
     Goto(u32),
     Gosub(u32),
     Return,
+    Run,  // RUN - restart program from beginning
     For(ForStatement),
     Next(Option<String>),
     Dim(Vec<DimDeclaration>),
@@ -131,7 +133,7 @@ impl Parser {
         // First pass: normalize statement keywords
         // CRITICAL: Must skip string literals! Keywords in strings should NOT be normalized
         let statement_keywords = [
-            "RETURN", "GOSUB", "INPUT", "PRINT", "GOTO", "THEN", "NEXT",
+            "RETURN", "RUN", "GOSUB", "INPUT", "GET", "PRINT", "GOTO", "THEN", "NEXT",
             "DATA", "READ", "POKE", "FOR", "DIM", "END", "REM", "IF",
         ];
 
@@ -394,11 +396,18 @@ impl Parser {
             self.consume_word("RETURN");
             return Ok(Statement::Return);
         }
+        if remaining.starts_with("RUN") && remaining.chars().nth(3).map_or(true, is_keyword_boundary) {
+            self.consume_word("RUN");
+            return Ok(Statement::Run);
+        }
         if remaining.starts_with("PRINT") && remaining.chars().nth(5).map_or(true, is_keyword_boundary) {
             return self.parse_print();
         }
         if remaining.starts_with("INPUT") && remaining.chars().nth(5).map_or(true, is_keyword_boundary) {
             return self.parse_input();
+        }
+        if remaining.starts_with("GET") && remaining.chars().nth(3).map_or(true, is_keyword_boundary) {
+            return self.parse_get();
         }
         if remaining.starts_with("GOSUB") && remaining.chars().nth(5).map_or(true, is_keyword_boundary) {
             return self.parse_gosub();
@@ -505,6 +514,16 @@ impl Parser {
         let variable = self.parse_identifier()?;
 
         Ok(Statement::Input(InputStatement { prompt, variable }))
+    }
+
+    fn parse_get(&mut self) -> Result<Statement, String> {
+        self.consume_word("GET");
+        self.skip_whitespace();
+
+        // GET reads a single character into a variable
+        let variable = self.parse_identifier()?;
+
+        Ok(Statement::Get(variable))
     }
 
     fn parse_if(&mut self) -> Result<Statement, String> {
@@ -984,7 +1003,13 @@ impl Parser {
         }
 
         let result = self.input[start..self.pos].to_string();
-        self.expect('"')?;
+
+        // C64 BASIC allows unclosed strings at end of line - they are implicitly closed
+        if self.peek() == Some('"') {
+            self.expect('"')?;
+        }
+        // If no closing quote found, string is implicitly closed at EOL (C64 behavior)
+
         Ok(result)
     }
 
