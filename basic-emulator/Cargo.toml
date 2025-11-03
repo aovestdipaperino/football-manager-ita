@@ -1,0 +1,19 @@
+[package]
+name = "basic-emulator"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "basic_emulator"
+path = "src/lib.rs"
+
+[[bin]]
+name = "basic64"
+path = "src/main.rs"
+
+[dependencies]
+ratatui.workspace = true
+crossterm.workspace = true
+rand.workspace = true
+serde.workspace = true
+serde_json.workspace = true
