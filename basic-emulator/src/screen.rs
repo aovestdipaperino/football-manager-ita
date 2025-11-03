@@ -6,7 +6,7 @@ use ratatui::{
     Frame,
 };
 use std::sync::{Arc, Mutex};
-use crate::petscii::{build_petscii_table, PetASCII};
+use crate::petscii::{build_petscii_table_uppercase, build_petscii_table_lowercase, PetASCII, CharsetMode};
 
 const SCREEN_WIDTH: usize = 40; // C64 screen width
 const SCREEN_HEIGHT: usize = 25; // C64 screen height
@@ -35,7 +35,9 @@ pub struct Screen {
     background_color: Arc<Mutex<Color>>,
     reverse_mode: Arc<Mutex<bool>>,
     current_color: Arc<Mutex<Color>>,
-    petscii_table: Arc<[PetASCII; 256]>,
+    petscii_table_uppercase: Arc<[PetASCII; 256]>,
+    petscii_table_lowercase: Arc<[PetASCII; 256]>,
+    charset_mode: Arc<Mutex<CharsetMode>>,
 }
 
 impl Screen {
@@ -49,7 +51,9 @@ impl Screen {
             background_color: Arc::new(Mutex::new(Color::Rgb(0, 136, 85))),
             reverse_mode: Arc::new(Mutex::new(false)),
             current_color: Arc::new(Mutex::new(Color::LightCyan)),
-            petscii_table: Arc::new(build_petscii_table()),
+            petscii_table_uppercase: Arc::new(build_petscii_table_uppercase()),
+            petscii_table_lowercase: Arc::new(build_petscii_table_lowercase()),
+            charset_mode: Arc::new(Mutex::new(CharsetMode::UppercaseGraphics)),
         }
     }
 
@@ -81,6 +85,11 @@ impl Screen {
                 }
                 0x08 => {
                     // DISABLE SHIFT+COMMODORE - skip
+                    continue;
+                }
+                0x0E => {
+                    // Switch to UPPERCASE/GRAPHICS mode
+                    *self.charset_mode.lock().unwrap() = CharsetMode::UppercaseGraphics;
                     continue;
                 }
                 0x0D => {
@@ -160,6 +169,16 @@ impl Screen {
                     // ORANGE color
                     current_color = Color::Rgb(255, 165, 0);
                     *self.current_color.lock().unwrap() = current_color;
+                    continue;
+                }
+                0x8E => {
+                    // Switch to LOWERCASE/UPPERCASE mode
+                    *self.charset_mode.lock().unwrap() = CharsetMode::LowercaseUppercase;
+                    continue;
+                }
+                0x8F => {
+                    // Switch to UPPERCASE/GRAPHICS mode (alternative code)
+                    *self.charset_mode.lock().unwrap() = CharsetMode::UppercaseGraphics;
                     continue;
                 }
                 0x90 => {
@@ -275,9 +294,15 @@ impl Screen {
             } else {
                 // Print character at current position with current color
                 if y < SCREEN_HEIGHT && x < SCREEN_WIDTH {
-                    // Look up PETSCII character and map to Unicode for display
+                    // Look up PETSCII character using the correct charset mode
                     let byte = ch as u8;
-                    let display_ch = match self.petscii_table[byte as usize] {
+                    let charset_mode = *self.charset_mode.lock().unwrap();
+                    let petscii_table = match charset_mode {
+                        CharsetMode::UppercaseGraphics => &self.petscii_table_uppercase,
+                        CharsetMode::LowercaseUppercase => &self.petscii_table_lowercase,
+                    };
+
+                    let display_ch = match petscii_table[byte as usize] {
                         PetASCII::Unicode(unicode_ch) => unicode_ch,
                         PetASCII::Control(_) => ch, // Control codes shouldn't reach here, pass through
                     };

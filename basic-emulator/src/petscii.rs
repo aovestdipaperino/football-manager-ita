@@ -2,6 +2,14 @@
 ///
 /// This module provides a clean array-based lookup system for converting
 /// PETSCII bytes to their Unicode display equivalents or control actions.
+///
+/// The C64 has two character sets that can be switched:
+/// - Charset 0 (uppercase/graphics): Letters display as UPPERCASE, codes 0x60-0xFF are graphics
+/// - Charset 1 (lowercase/uppercase): Letters can be lowercase, codes 0x60-0xFF are letters
+///
+/// Control codes to switch:
+/// - CHR$(14) / 0x0E: Switch to uppercase/graphics (charset 0)
+/// - CHR$(142) / 0x8E: Switch to lowercase/uppercase (charset 1)
 
 /// PETSCII character mapping - either a printable Unicode character or a control code
 #[derive(Clone, Copy)]
@@ -12,8 +20,17 @@ pub enum PetASCII {
     Control(u8),
 }
 
-/// Build the complete 256-entry PETSCII lookup table
-pub fn build_petscii_table() -> [PetASCII; 256] {
+/// Character set mode
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum CharsetMode {
+    /// Uppercase/Graphics mode (default) - graphics in 0x60-0xFF range
+    UppercaseGraphics,
+    /// Lowercase/Uppercase mode - lowercase letters available
+    LowercaseUppercase,
+}
+
+/// Build the complete 256-entry PETSCII lookup table for uppercase/graphics mode
+pub fn build_petscii_table_uppercase() -> [PetASCII; 256] {
     let mut table = [PetASCII::Unicode('?'); 256];
 
     // Control codes (0x00-0x1F) - pass through for screen handling
@@ -112,6 +129,117 @@ pub fn build_petscii_table() -> [PetASCII; 256] {
     table
 }
 
+/// Build the complete 256-entry PETSCII lookup table for lowercase/uppercase mode
+pub fn build_petscii_table_lowercase() -> [PetASCII; 256] {
+    let mut table = [PetASCII::Unicode('?'); 256];
+
+    // Control codes (0x00-0x1F) - pass through for screen handling
+    for i in 0x00..=0x1F {
+        table[i] = PetASCII::Control(i as u8);
+    }
+
+    // Standard ASCII printable (0x20-0x5F)
+    for i in 0x20..=0x5F {
+        table[i] = PetASCII::Unicode(i as u8 as char);
+    }
+
+    // Same ASCII approximations as uppercase mode
+    table[0x2D] = PetASCII::Unicode('─'); // '-' → horizontal line
+    table[0x7C] = PetASCII::Unicode('│'); // '|' → vertical line
+    table[0x2B] = PetASCII::Unicode('┼'); // '+' → cross
+    table[0x23] = PetASCII::Unicode('█'); // '#' → full block
+
+    // In lowercase mode, 0x41-0x5A are UPPERCASE letters (displayed as is)
+    // Already handled by the loop above
+
+    // PETSCII 0x60-0x7F - LOWERCASE letters in this mode
+    for i in 0x61..=0x7A {
+        // lowercase a-z
+        table[i] = PetASCII::Unicode(i as u8 as char);
+    }
+    table[0x60] = PetASCII::Unicode('─'); // Still horizontal line
+    table[0x7B] = PetASCII::Unicode('[');
+    table[0x7C] = PetASCII::Unicode('│'); // Vertical line
+    table[0x7D] = PetASCII::Unicode(']');
+    table[0x7E] = PetASCII::Unicode('~');
+    table[0x7F] = PetASCII::Unicode('·');
+
+    // Control codes (0x80-0x9F) - colors and video control
+    for i in 0x80..=0x9F {
+        table[i] = PetASCII::Control(i as u8);
+    }
+
+    // PETSCII box drawing (0xA0-0xBF) - SAME as uppercase mode
+    table[0xA0] = PetASCII::Unicode(' ');
+    table[0xA1] = PetASCII::Unicode('▐');
+    table[0xA2] = PetASCII::Unicode('░');
+    table[0xA3] = PetASCII::Unicode('─');
+    table[0xA4] = PetASCII::Unicode('▒');
+    table[0xA5] = PetASCII::Unicode('▔');
+    table[0xA6] = PetASCII::Unicode('▃');
+    table[0xA7] = PetASCII::Unicode('▖');
+    table[0xA8] = PetASCII::Unicode('▝');
+    table[0xA9] = PetASCII::Unicode('┘');
+    table[0xAA] = PetASCII::Unicode('▘');
+    table[0xAB] = PetASCII::Unicode('╱');
+    table[0xAC] = PetASCII::Unicode('▐');
+    table[0xAD] = PetASCII::Unicode('╯');
+    table[0xAE] = PetASCII::Unicode('╰');
+    table[0xAF] = PetASCII::Unicode('╭');
+    table[0xB0] = PetASCII::Unicode('╲');
+    table[0xB1] = PetASCII::Unicode('├');
+    table[0xB2] = PetASCII::Unicode('┤');
+    table[0xB3] = PetASCII::Unicode('╮');
+    table[0xB4] = PetASCII::Unicode('┬');
+    table[0xB5] = PetASCII::Unicode('┴');
+    table[0xB6] = PetASCII::Unicode('┼');
+    table[0xB7] = PetASCII::Unicode('◆');
+    table[0xB8] = PetASCII::Unicode('◇');
+    table[0xB9] = PetASCII::Unicode('●');
+    table[0xBA] = PetASCII::Unicode('○');
+    table[0xBB] = PetASCII::Unicode('┼');
+    table[0xBC] = PetASCII::Unicode('│');
+    table[0xBD] = PetASCII::Unicode('│');
+    table[0xBE] = PetASCII::Unicode('┼');
+    table[0xBF] = PetASCII::Unicode(' ');
+
+    // PETSCII shifted characters (0xC0-0xDF) - UPPERCASE in lowercase mode
+    table[0xC0] = PetASCII::Unicode('─');  // Horizontal line
+    for i in 0xC1..=0xDA {
+        // Uppercase A-Z (these are the "shifted" versions in lowercase mode)
+        table[i] = PetASCII::Unicode((i - 0xC0 + 0x41) as u8 as char);
+    }
+    table[0xDB] = PetASCII::Unicode('█');
+    table[0xDC] = PetASCII::Unicode('▄');
+    table[0xDD] = PetASCII::Unicode('│');
+    table[0xDE] = PetASCII::Unicode('▐');
+    table[0xDF] = PetASCII::Unicode('▄');
+
+    // PETSCII 0xE0-0xFF - various graphics (same as uppercase mode)
+    table[0xE0] = PetASCII::Unicode('░');
+    table[0xE1] = PetASCII::Unicode('▒');
+    table[0xE2] = PetASCII::Unicode('▓');
+    table[0xE3] = PetASCII::Unicode('◆');
+    table[0xE4] = PetASCII::Unicode('┼');
+    table[0xE5] = PetASCII::Unicode('◄');
+    table[0xE6] = PetASCII::Unicode('═');
+    table[0xE7] = PetASCII::Unicode('►');
+    table[0xE8] = PetASCII::Unicode('?');
+    for i in 0xE9..=0xFF {
+        table[i] = PetASCII::Unicode('░');
+    }
+
+    table
+}
+
+/// Get the appropriate PETSCII table for the current mode
+pub fn get_petscii_table(mode: CharsetMode) -> [PetASCII; 256] {
+    match mode {
+        CharsetMode::UppercaseGraphics => build_petscii_table_uppercase(),
+        CharsetMode::LowercaseUppercase => build_petscii_table_lowercase(),
+    }
+}
+
 /// Convert a PETSCII byte to ASCII for use in detokenized strings
 /// Returns (character, is_control_code)
 /// This preserves enough information for the parser while staying single-byte
@@ -169,8 +297,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_petscii_table() {
-        let table = build_petscii_table();
+    fn test_petscii_table_uppercase() {
+        let table = build_petscii_table_uppercase();
 
         // Test control code
         match table[0x05] {
@@ -188,6 +316,58 @@ mod tests {
         match table[0xDD] {
             PetASCII::Unicode('│') => (),
             _ => panic!("Expected vertical line"),
+        }
+
+        // Test uppercase letter in uppercase mode
+        match table[0x41] {
+            PetASCII::Unicode('A') => (),
+            _ => panic!("Expected uppercase A"),
+        }
+
+        // Test graphics in range 0x61-0x7A (uppercase mode)
+        match table[0x61] {
+            PetASCII::Unicode('A') => (),  // Maps to uppercase
+            _ => panic!("Expected uppercase A from 0x61"),
+        }
+    }
+
+    #[test]
+    fn test_petscii_table_lowercase() {
+        let table = build_petscii_table_lowercase();
+
+        // Test lowercase letter in lowercase mode
+        match table[0x61] {
+            PetASCII::Unicode('a') => (),
+            _ => panic!("Expected lowercase a"),
+        }
+
+        // Test uppercase letter still works
+        match table[0x41] {
+            PetASCII::Unicode('A') => (),
+            _ => panic!("Expected uppercase A"),
+        }
+
+        // Graphics should still work
+        match table[0xDD] {
+            PetASCII::Unicode('│') => (),
+            _ => panic!("Expected vertical line"),
+        }
+    }
+
+    #[test]
+    fn test_charset_mode() {
+        let uppercase_table = get_petscii_table(CharsetMode::UppercaseGraphics);
+        let lowercase_table = get_petscii_table(CharsetMode::LowercaseUppercase);
+
+        // Verify 0x61 differs between modes
+        match uppercase_table[0x61] {
+            PetASCII::Unicode('A') => (),  // Uppercase mode
+            _ => panic!("Expected A in uppercase mode"),
+        }
+
+        match lowercase_table[0x61] {
+            PetASCII::Unicode('a') => (),  // Lowercase mode
+            _ => panic!("Expected a in lowercase mode"),
         }
     }
 }
