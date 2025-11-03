@@ -110,6 +110,11 @@ impl Interpreter {
             return Ok(false);
         }
 
+        // If waiting for input, don't advance
+        if self.waiting_for_input {
+            return Ok(true);
+        }
+
         let current_line = match self.current_line {
             Some(line) => line,
             None => return Ok(false), // Program ended
@@ -206,8 +211,9 @@ impl Interpreter {
     }
 
     fn exec_input(&mut self, stmt: &crate::parser::InputStatement) -> Result<(), String> {
+        // If we're already waiting for input, don't do anything
+        // (this shouldn't happen with the step() check, but defensive)
         if self.waiting_for_input {
-            // Already waiting, this shouldn't happen
             return Ok(());
         }
 
@@ -219,24 +225,23 @@ impl Interpreter {
 
         self.waiting_for_input = true;
         self.input_variable = Some(stmt.variable.clone());
-        self.statement_idx -= 1; // Stay on this statement until input is complete
+        // Don't decrement statement_idx - step() will handle waiting
 
         Ok(())
     }
 
     fn exec_get(&mut self, variable: &str) -> Result<(), String> {
         // GET reads a single character without waiting for Enter
-        // For now, treat it like INPUT but store empty string if no input yet
-        // This is a simplified implementation - real C64 GET doesn't wait
+        // For our TUI implementation, we'll treat it like INPUT for simplicity
         if self.waiting_for_input {
             return Ok(());
         }
 
         // On C64, GET doesn't wait - it reads immediately or gets empty string
-        // For our TUI implementation, we'll treat it like INPUT for simplicity
+        // For our TUI implementation, we'll wait for input like INPUT
         self.waiting_for_input = true;
         self.input_variable = Some(variable.to_string());
-        self.statement_idx -= 1; // Stay on this statement until input is complete
+        // Don't decrement statement_idx - step() will handle waiting
 
         Ok(())
     }

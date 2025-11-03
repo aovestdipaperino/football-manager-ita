@@ -14,46 +14,109 @@ pub fn petscii_to_ascii(byte: u8) -> (char, bool) {
     match byte {
         // Control codes (0x00-0x1F)
         0x05 => ('#', false), // White color (show as #)
+        0x0D => (' ', true),  // Return
+        0x11 => (' ', true),  // Cursor down
+        0x12 => (' ', true),  // Reverse on
+        0x13 => (' ', true),  // Home
+        0x14 => (' ', true),  // Delete
         0x1C => ('#', false), // Red
+        0x1D => (' ', true),  // Cursor right
         0x1E => ('#', false), // Green
         0x1F => ('#', false), // Blue
-        0x81 => ('#', false), // Orange
-        0x90 => (' ', true),   // Black (reverse off) - control code
-        0x12 => (' ', true),   // Reverse on
-        0x92 => (' ', true),   // Reverse off
-        0x8E => (' ', true),   // Lowercase/uppercase switch
-        0x8F => (' ', true),   // Switch to uppercase
 
         // Standard ASCII range (0x20-0x5F)
         0x20..=0x5F => (byte as char, false),
 
         // PETSCII graphics characters (0x60-0x7F) - use ASCII approximations
         0x60 => ('-', false), // Horizontal line
-        0x61..=0x7F => ('.', false), // Various graphics - use dot
+        0x61..=0x7A => ((byte - 0x60 + 0x41) as char, false), // Lowercase -> uppercase
+        0x7B => ('+', false),
+        0x7C => ('|', false),
+        0x7D => ('+', false),
+        0x7E => ('~', false),
+        0x7F => ('.', false),
+
+        // Control codes (0x80-0x9F)
+        0x81 => ('#', false), // Orange
+        0x90 => (' ', true),  // Black (reverse off)
+        0x91 => (' ', true),  // Cursor up
+        0x92 => (' ', true),  // Reverse off
+        0x93 => (' ', true),  // Clear screen
+        0x94 => (' ', true),  // Insert
+        0x95 => ('#', false), // Brown
+        0x96 => ('#', false), // Light red
+        0x97 => ('#', false), // Dark gray
+        0x98 => ('#', false), // Medium gray
+        0x99 => ('#', false), // Light green
+        0x9A => ('#', false), // Light blue
+        0x9B => ('#', false), // Light gray
+        0x9C => ('#', false), // Purple
+        0x9D => (' ', true),  // Cursor left
+        0x9E => ('#', false), // Yellow
+        0x9F => ('#', false), // Cyan
 
         // PETSCII box drawing and graphics (0xA0-0xBF) - ASCII approximations
         0xA0 => (' ', false), // NBSP / Shifted space
         0xAB => ('/', false), // Forward slash box
-        0xB0 => ('\\', false), // Backslash box
-        0xB3 => ('+', false), // Box top-right corner
+        0xAC => ('<', false),
         0xAD => ('+', false), // Box bottom-right
         0xAE => ('+', false), // Box bottom-left
         0xAF => ('+', false), // Box top-left
+        0xB0 => ('\\', false), // Backslash box
         0xB1 => ('+', false), // Box left T
         0xB2 => ('+', false), // Box right T
+        0xB3 => ('+', false), // Box top-right corner
         0xB4 => ('+', false), // Box top T
         0xB5 => ('+', false), // Box bottom T
         0xB6 => ('+', false), // Box cross
+        0xB7 => ('*', false),
+        0xB8 => ('*', false),
+        0xB9 => ('*', false),
+        0xBA => ('*', false),
+        0xBB => ('+', false),
+        0xBC => ('+', false),
+        0xBD => ('|', false),
+        0xBE => ('+', false),
+        0xBF => (' ', false),
 
-        // More PETSCII graphics (0xC0-0xDF) - ASCII approximations
-        0xC0 => ('-', false), // Horizontal line (thick)
-        0xC1..=0xCF => ('-', false), // Upper half block -> dash
-        0xD0..=0xDA => ('_', false), // Lower half block -> underscore
-        0xDB => ('#', false), // Full block -> hash
+        // PETSCII shifted characters (0xC0-0xDF)
+        // These are graphics characters and shifted alphabet
+        0xC0 => ('-', false), // Horizontal line
+        0xC1 => ('A', false), // Shifted A
+        0xC2 => ('B', false),
+        0xC3 => ('C', false),
+        0xC4 => ('D', false),
+        0xC5 => ('E', false),
+        0xC6 => ('F', false),
+        0xC7 => ('G', false),
+        0xC8 => ('H', false),
+        0xC9 => ('I', false),
+        0xCA => ('J', false),
+        0xCB => ('K', false),
+        0xCC => ('L', false),
+        0xCD => ('M', false),
+        0xCE => ('N', false),
+        0xCF => ('O', false),
+        0xD0 => ('P', false),
+        0xD1 => ('Q', false),
+        0xD2 => ('R', false),
+        0xD3 => ('S', false),
+        0xD4 => ('T', false),
+        0xD5 => ('U', false),
+        0xD6 => ('V', false),
+        0xD7 => ('W', false),
+        0xD8 => ('X', false),
+        0xD9 => ('Y', false),
+        0xDA => ('Z', false),
+        0xDB => ('#', false), // Full block
         0xDC => ('_', false), // Lower half block
         0xDD => ('[', false), // Left half block
         0xDE => (']', false), // Right half block
         0xDF => ('_', false), // Lower half block
+
+        // More shifted characters (0xE0-0xFF)
+        0xE0..=0xFE => ('.', false), // Various graphics
+        0xFF => ('.', false),
 
         // Everything else - use replacement character
         _ => ('?', false),
