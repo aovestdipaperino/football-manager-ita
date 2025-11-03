@@ -15,10 +15,16 @@ pub enum Statement {
     Next(Option<String>),
     Dim(Vec<DimDeclaration>),
     Data(Vec<String>),
-    Read(Vec<String>),
+    Read(Vec<ReadTarget>),
     Poke(Box<Expr>, Box<Expr>),
     End,
     Rem(String),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReadTarget {
+    pub variable: String,
+    pub index: Option<Vec<Expr>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -680,11 +686,33 @@ impl Parser {
 
     fn parse_read(&mut self) -> Result<Statement, String> {
         self.consume_word("READ");
-        let mut variables = Vec::new();
+        let mut targets = Vec::new();
 
         loop {
             self.skip_whitespace();
-            variables.push(self.parse_identifier()?);
+            let variable = self.parse_identifier()?;
+            let mut index = None;
+
+            // Check for array access
+            self.skip_whitespace();
+            if self.peek() == Some('(') {
+                self.advance();
+                let mut indices = Vec::new();
+                loop {
+                    indices.push(self.parse_expression()?);
+                    self.skip_whitespace();
+                    if self.peek() == Some(',') {
+                        self.advance();
+                    } else {
+                        break;
+                    }
+                }
+                self.expect(')')?;
+                index = Some(indices);
+            }
+
+            targets.push(ReadTarget { variable, index });
+
             self.skip_whitespace();
             if self.peek() == Some(',') {
                 self.advance();
@@ -693,7 +721,7 @@ impl Parser {
             }
         }
 
-        Ok(Statement::Read(variables))
+        Ok(Statement::Read(targets))
     }
 
     fn parse_poke(&mut self) -> Result<Statement, String> {

@@ -414,8 +414,8 @@ impl Interpreter {
         Ok(())
     }
 
-    fn exec_read(&mut self, vars: &[String]) -> Result<(), String> {
-        for var in vars {
+    fn exec_read(&mut self, targets: &[crate::parser::ReadTarget]) -> Result<(), String> {
+        for target in targets {
             if self.data_pointer >= self.data_values.len() {
                 return Err("OUT OF DATA".to_string());
             }
@@ -423,13 +423,43 @@ impl Interpreter {
             let data_str = &self.data_values[self.data_pointer];
             self.data_pointer += 1;
 
-            let value = if var.ends_with('$') {
+            let value = if target.variable.ends_with('$') {
                 Value::String(data_str.clone().into_bytes())
             } else {
                 Value::Number(data_str.parse().unwrap_or(0.0))
             };
 
-            self.variables.insert(var.clone(), value);
+            // Handle array or simple variable assignment
+            if let Some(indices) = &target.index {
+                // Array assignment
+                let index_values: Result<Vec<usize>, String> = indices
+                    .iter()
+                    .map(|e| Ok(self.eval_expr(e)?.as_int()? as usize))
+                    .collect();
+                let index_values = index_values?;
+
+                // C64 BASIC auto-dimensions arrays on first use (0-10)
+                if !self.array_dimensions.contains_key(&target.variable) {
+                    self.auto_dimension_array(&target.variable, indices.len())?;
+                }
+
+                let dims = self.array_dimensions.get(&target.variable)
+                    .ok_or_else(|| format!("Array {} not dimensioned", target.variable))?.clone();
+
+                let flat_index = self.calculate_flat_index(&index_values, &dims)?;
+
+                let array = self.arrays.get_mut(&target.variable)
+                    .ok_or_else(|| format!("Array {} not dimensioned", target.variable))?;
+
+                if flat_index >= array.len() {
+                    return Err(format!("Array index out of bounds"));
+                }
+
+                array[flat_index] = value;
+            } else {
+                // Simple variable assignment
+                self.variables.insert(target.variable.clone(), value);
+            }
         }
 
         Ok(())
