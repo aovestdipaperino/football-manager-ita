@@ -1,5 +1,6 @@
 mod interpreter;
 mod parser;
+mod petscii;
 mod prg_loader;
 mod screen;
 mod value;

@@ -8,6 +8,7 @@
 ///   - Tokenized content (tokens $80-$FF, ASCII text)
 ///   - Line terminator ($00)
 
+use crate::petscii::petscii_to_ascii;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
@@ -169,8 +170,11 @@ pub fn detokenize_program(bytes: &[u8]) -> Result<String, String> {
             // Inside quotes or REM, treat everything as literal
             if in_quotes || in_rem {
                 // Convert PETSCII to ASCII
-                let ch = petscii_to_ascii(byte);
-                result.push(ch);
+                let (ch, is_control) = petscii_to_ascii(byte);
+                // Skip control codes in output (they don't print)
+                if !is_control {
+                    result.push(ch);
+                }
                 last_was_alphanumeric = false;
                 continue;
             }
@@ -232,9 +236,11 @@ pub fn detokenize_program(bytes: &[u8]) -> Result<String, String> {
                     ));
                 }
             } else {
-                // Regular ASCII character
-                let ch = petscii_to_ascii(byte);
-                result.push(ch);
+                // Regular character (not a token)
+                let (ch, is_control) = petscii_to_ascii(byte);
+                if !is_control {
+                    result.push(ch);
+                }
 
                 // Track if this character is alphanumeric
                 last_was_alphanumeric = (b'A'..=b'Z').contains(&byte) ||
@@ -257,16 +263,6 @@ pub fn detokenize_program(bytes: &[u8]) -> Result<String, String> {
 
 /// Convert PETSCII character to ASCII
 /// This is a simplified conversion for printable characters
-fn petscii_to_ascii(petscii: u8) -> char {
-    match petscii {
-        // Printable ASCII range is mostly compatible
-        32..=95 => petscii as char,
-        // Lowercase letters in PETSCII
-        97..=122 => petscii as char,
-        // Map some common PETSCII codes
-        _ => '?', // Unknown characters become '?'
-    }
-}
 
 #[cfg(test)]
 mod tests {
