@@ -169,12 +169,15 @@ pub fn detokenize_program(bytes: &[u8]) -> Result<String, String> {
 
             // Inside quotes or REM, treat everything as literal
             if in_quotes || in_rem {
-                // Convert PETSCII to ASCII
-                let (ch, is_control) = petscii_to_ascii(byte);
-                // Skip control codes in detokenized source (they'll be in CHR$ calls)
-                // Control codes would break the parser's byte indexing
-                if !is_control {
-                    result.push(ch);
+                // For string literals, preserve original PETSCII bytes using special marker
+                // Format: \{XX} where XX is hex byte value
+                // This allows parser to work with single-byte ASCII while preserving original values
+                if byte < 0x20 || byte >= 0x80 {
+                    // Control codes and extended PETSCII - use marker
+                    result.push_str(&format!("\\{{{:02X}}}", byte));
+                } else {
+                    // Regular ASCII printable - use as-is
+                    result.push(byte as char);
                 }
                 last_was_alphanumeric = false;
                 continue;

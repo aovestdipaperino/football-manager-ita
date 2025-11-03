@@ -79,7 +79,8 @@ impl Interpreter {
 
     pub fn handle_input_char(&mut self, c: char) {
         self.input_buffer.push(c);
-        self.screen.print(&c.to_string());
+        let bytes = c.to_string().into_bytes();
+        self.screen.print(&bytes);
     }
 
     pub fn handle_input_backspace(&mut self) {
@@ -92,7 +93,7 @@ impl Interpreter {
     pub fn handle_input_enter(&mut self) {
         if let Some(var_name) = &self.input_variable {
             let value = if var_name.ends_with('$') {
-                Value::String(self.input_buffer.clone())
+                Value::String(self.input_buffer.clone().into_bytes())
             } else {
                 Value::Number(self.input_buffer.parse().unwrap_or(0.0))
             };
@@ -101,7 +102,7 @@ impl Interpreter {
             self.input_buffer.clear();
             self.waiting_for_input = false;
             self.input_variable = None;
-            self.screen.println("");
+            self.screen.println(b"");
         }
     }
 
@@ -170,16 +171,16 @@ impl Interpreter {
             match item {
                 PrintItem::Expr(expr) => {
                     let value = self.eval_expr(expr)?;
-                    let text = value.to_display_string();
-                    self.screen.print(&text);
+                    let bytes = value.as_petscii_bytes();
+                    self.screen.print(&bytes);
 
                     // C64 adds a trailing space after numbers (but not strings)
                     let add_space = matches!(value, Value::Number(_));
                     if add_space {
-                        self.screen.print(" ");
-                        column += text.len() + 1;
+                        self.screen.print(b" ");
+                        column += bytes.len() + 1;
                     } else {
-                        column += text.len();
+                        column += bytes.len();
                     }
                 }
                 PrintItem::Tab(expr) => {
@@ -196,7 +197,7 @@ impl Interpreter {
                 PrintItem::Spc(expr) => {
                     let count = self.eval_expr(expr)?.as_int()? as usize;
                     for _ in 0..count {
-                        self.screen.print(" ");
+                        self.screen.print(b" ");
                     }
                     column += count;
                 }
@@ -204,7 +205,7 @@ impl Interpreter {
         }
 
         if !stmt.trailing_semicolon {
-            self.screen.println("");
+            self.screen.println(b"");
         }
 
         Ok(())
@@ -220,7 +221,7 @@ impl Interpreter {
         if let Some(prompt) = &stmt.prompt {
             self.screen.print(prompt);
         } else {
-            self.screen.print("? ");
+            self.screen.print(b"? ");
         }
 
         self.waiting_for_input = true;
@@ -401,7 +402,7 @@ impl Interpreter {
             }
 
             let default_value = if decl.name.ends_with('$') {
-                Value::String(String::new())
+                Value::String(Vec::new())
             } else {
                 Value::Number(0.0)
             };
@@ -423,7 +424,7 @@ impl Interpreter {
             self.data_pointer += 1;
 
             let value = if var.ends_with('$') {
-                Value::String(data_str.clone())
+                Value::String(data_str.clone().into_bytes())
             } else {
                 Value::Number(data_str.parse().unwrap_or(0.0))
             };
@@ -470,7 +471,7 @@ impl Interpreter {
 
         // Create array filled with default values (0 for numbers, "" for strings)
         let default_value = if name.ends_with('$') {
-            Value::String(String::new())
+            Value::String(Vec::new())
         } else {
             Value::Number(0.0)
         };
@@ -512,7 +513,7 @@ impl Interpreter {
                     .or_else(|| {
                         // Return default value if not found
                         if name.ends_with('$') {
-                            Some(Value::String(String::new()))
+                            Some(Value::String(Vec::new()))
                         } else {
                             Some(Value::Number(0.0))
                         }
@@ -560,7 +561,11 @@ impl Interpreter {
         match op {
             BinOp::Add => match (left, right) {
                 (Value::Number(a), Value::Number(b)) => Ok(Value::Number(a + b)),
-                (Value::String(a), Value::String(b)) => Ok(Value::String(format!("{}{}", a, b))),
+                (Value::String(a), Value::String(b)) => {
+                    let mut result = a.clone();
+                    result.extend_from_slice(b);
+                    Ok(Value::String(result))
+                }
                 _ => Err("Type mismatch in addition".to_string()),
             },
             BinOp::Sub => Ok(Value::Number(left.as_number()? - right.as_number()?)),
@@ -610,41 +615,43 @@ impl Interpreter {
                     return Err("CHR$ requires 1 argument".to_string());
                 }
                 let code = self.eval_expr(&args[0])?.as_int()? as u8;
-                Ok(Value::String((code as char).to_string()))
+                Ok(Value::String(vec![code]))
             }
             "ASC" => {
                 if args.len() != 1 {
                     return Err("ASC requires 1 argument".to_string());
                 }
-                let s = self.eval_expr(&args[0])?.as_string()?;
-                Ok(Value::Number(s.chars().next().unwrap_or('\0') as u8 as f64))
+                let s = self.eval_expr(&args[0])?.as_string_bytes()?;
+                Ok(Value::Number(s.get(0).copied().unwrap_or(0) as f64))
             }
             "VAL" => {
                 if args.len() != 1 {
                     return Err("VAL requires 1 argument".to_string());
                 }
-                let s = self.eval_expr(&args[0])?.as_string()?;
-                Ok(Value::Number(s.trim().parse().unwrap_or(0.0)))
+                let s = self.eval_expr(&args[0])?.as_string_bytes()?;
+                let s_str = String::from_utf8_lossy(&s);
+                Ok(Value::Number(s_str.trim().parse().unwrap_or(0.0)))
             }
             "STR$" => {
                 if args.len() != 1 {
                     return Err("STR$ requires 1 argument".to_string());
                 }
                 let n = self.eval_expr(&args[0])?.as_number()?;
-                Ok(Value::String(format!(" {}", n)))
+                let formatted = format!(" {}", n);
+                Ok(Value::String(formatted.into_bytes()))
             }
             "MID$" => {
                 if args.len() < 2 || args.len() > 3 {
                     return Err("MID$ requires 2 or 3 arguments".to_string());
                 }
-                let s = self.eval_expr(&args[0])?.as_string()?;
+                let s = self.eval_expr(&args[0])?.as_string_bytes()?;
                 let start = (self.eval_expr(&args[1])?.as_int()? - 1).max(0) as usize;
 
                 let result = if args.len() == 3 {
                     let length = self.eval_expr(&args[2])?.as_int()? as usize;
-                    s.chars().skip(start).take(length).collect()
+                    s.iter().skip(start).take(length).copied().collect()
                 } else {
-                    s.chars().skip(start).collect()
+                    s.iter().skip(start).copied().collect()
                 };
 
                 Ok(Value::String(result))
@@ -653,25 +660,27 @@ impl Interpreter {
                 if args.len() != 1 {
                     return Err("LEN requires 1 argument".to_string());
                 }
-                let s = self.eval_expr(&args[0])?.as_string()?;
+                let s = self.eval_expr(&args[0])?.as_string_bytes()?;
                 Ok(Value::Number(s.len() as f64))
             }
             "LEFT$" => {
                 if args.len() != 2 {
                     return Err("LEFT$ requires 2 arguments".to_string());
                 }
-                let s = self.eval_expr(&args[0])?.as_string()?;
+                let s = self.eval_expr(&args[0])?.as_string_bytes()?;
                 let length = self.eval_expr(&args[1])?.as_int()? as usize;
-                Ok(Value::String(s.chars().take(length).collect()))
+                let result: Vec<u8> = s.iter().take(length).copied().collect();
+                Ok(Value::String(result))
             }
             "RIGHT$" => {
                 if args.len() != 2 {
                     return Err("RIGHT$ requires 2 arguments".to_string());
                 }
-                let s = self.eval_expr(&args[0])?.as_string()?;
+                let s = self.eval_expr(&args[0])?.as_string_bytes()?;
                 let length = self.eval_expr(&args[1])?.as_int()? as usize;
                 let skip = s.len().saturating_sub(length);
-                Ok(Value::String(s.chars().skip(skip).collect()))
+                let result: Vec<u8> = s.iter().skip(skip).copied().collect();
+                Ok(Value::String(result))
             }
             _ => Err(format!("Unknown function: {}", name)),
         }

@@ -65,15 +65,15 @@ impl Screen {
         *self.cursor_y.lock().unwrap() = 0;
     }
 
-    pub fn print(&self, text: &str) {
+    pub fn print(&self, bytes: &[u8]) {
         let mut buffer = self.buffer.lock().unwrap();
         let mut x = *self.cursor_x.lock().unwrap();
         let mut y = *self.cursor_y.lock().unwrap();
         let mut current_color = *self.current_color.lock().unwrap();
 
-        for ch in text.chars() {
-            // Handle control codes (0x00-0x1F are control characters)
-            let code = ch as u32;
+        for &byte in bytes {
+            // Handle control codes (0x00-0x1F and 0x80-0x9F are control characters)
+            let code = byte as u32;
 
             // Process C64 control codes
             match code {
@@ -282,7 +282,7 @@ impl Screen {
             }
 
             // Regular printable character
-            if ch == '\n' {
+            if byte == b'\n' {
                 y += 1;
                 x = 0;
                 if y >= SCREEN_HEIGHT {
@@ -295,7 +295,6 @@ impl Screen {
                 // Print character at current position with current color
                 if y < SCREEN_HEIGHT && x < SCREEN_WIDTH {
                     // Look up PETSCII character using the correct charset mode
-                    let byte = ch as u8;
                     let charset_mode = *self.charset_mode.lock().unwrap();
                     let petscii_table = match charset_mode {
                         CharsetMode::UppercaseGraphics => &self.petscii_table_uppercase,
@@ -304,7 +303,7 @@ impl Screen {
 
                     let display_ch = match petscii_table[byte as usize] {
                         PetASCII::Unicode(unicode_ch) => unicode_ch,
-                        PetASCII::Control(_) => ch, // Control codes shouldn't reach here, pass through
+                        PetASCII::Control(_) => byte as char, // Control codes shouldn't reach here, pass through
                     };
 
                     buffer[y][x] = ScreenCell {
@@ -329,9 +328,9 @@ impl Screen {
         *self.cursor_y.lock().unwrap() = y;
     }
 
-    pub fn println(&self, text: &str) {
-        self.print(text);
-        self.print("\n");
+    pub fn println(&self, bytes: &[u8]) {
+        self.print(bytes);
+        self.print(b"\n");
     }
 
     pub fn set_border_color(&self, color_code: u8) {

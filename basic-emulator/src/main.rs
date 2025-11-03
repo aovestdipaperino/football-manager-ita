@@ -20,7 +20,7 @@ use screen::Screen;
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
 
-    // Parse arguments
+    // Parse arguments and detect PRG files
     let mut prg_mode = false;
     let mut filename = None;
 
@@ -32,6 +32,10 @@ fn main() -> io::Result<()> {
             }
             arg if !arg.starts_with("--") => {
                 filename = Some(arg.to_string());
+                // Auto-detect PRG files by extension
+                if arg.to_lowercase().ends_with(".prg") {
+                    prg_mode = true;
+                }
             }
             _ => {
                 eprintln!("Unknown option: {}", args[i]);
@@ -161,7 +165,8 @@ fn run_interpreter(
                     return Ok(());
                 }
                 Err(e) => {
-                    screen.print(&format!("\nERROR: {}", e));
+                    let error_msg = format!("\nERROR: {}", e);
+                    screen.print(error_msg.as_bytes());
                     terminal.draw(|f| screen.draw(f))?;
                     // Wait for user to press a key before exiting
                     event::read()?;

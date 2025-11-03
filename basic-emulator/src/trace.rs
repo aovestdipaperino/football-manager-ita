@@ -58,7 +58,7 @@ impl ExecutionTracer {
                 name.clone(),
                 match value {
                     Value::Number(n) => format!("{}", n),
-                    Value::String(s) => format!("\"{}\"", s),
+                    Value::String(s) => format!("\"{}\"", String::from_utf8_lossy(s)),
                 }
             );
         }

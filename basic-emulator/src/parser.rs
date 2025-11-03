@@ -37,7 +37,7 @@ pub enum PrintItem {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct InputStatement {
-    pub prompt: Option<String>,
+    pub prompt: Option<Vec<u8>>,
     pub variable: String,
 }
 
@@ -72,7 +72,8 @@ pub struct DimDeclaration {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Number(f64),
-    String(String),
+    /// String stored as original PETSCII bytes
+    String(Vec<u8>),
     Variable(String),
     ArrayAccess(String, Vec<Expr>),
     BinaryOp(Box<Expr>, BinOp, Box<Expr>),
@@ -991,18 +992,39 @@ impl Parser {
             .map_err(|_| "Invalid number".to_string())
     }
 
-    fn parse_string_literal(&mut self) -> Result<String, String> {
+    fn parse_string_literal(&mut self) -> Result<Vec<u8>, String> {
         self.expect('"')?;
         let start = self.pos;
+
+        // Collect original PETSCII bytes
+        let mut bytes = Vec::new();
 
         while let Some(c) = self.peek() {
             if c == '"' {
                 break;
             }
+
+            // Check for escaped byte marker \{XX}
+            if c == '\\' && self.pos + 4 < self.input.len() {
+                let next_chars: String = self.input[self.pos..self.pos+5].chars().collect();
+                if next_chars.starts_with("\\{") && next_chars.ends_with("}") {
+                    // Extract hex byte value
+                    let hex_str = &self.input[self.pos+2..self.pos+4];
+                    if let Ok(byte_val) = u8::from_str_radix(hex_str, 16) {
+                        bytes.push(byte_val);
+                        // Skip past the \{XX} sequence
+                        for _ in 0..5 {
+                            self.advance();
+                        }
+                        continue;
+                    }
+                }
+            }
+
+            // Regular ASCII character
+            bytes.push(c as u8);
             self.advance();
         }
-
-        let result = self.input[start..self.pos].to_string();
 
         // C64 BASIC allows unclosed strings at end of line - they are implicitly closed
         if self.peek() == Some('"') {
@@ -1010,7 +1032,7 @@ impl Parser {
         }
         // If no closing quote found, string is implicitly closed at EOL (C64 behavior)
 
-        Ok(result)
+        Ok(bytes)
     }
 
     fn peek_word(&self) -> String {

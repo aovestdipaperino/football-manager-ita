@@ -3,7 +3,8 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Number(f64),
-    String(String),
+    /// String stored as original PETSCII bytes for proper charset handling
+    String(Vec<u8>),
 }
 
 impl Value {
@@ -14,7 +15,14 @@ impl Value {
         }
     }
 
-    pub fn as_string(&self) -> Result<String, String> {
+    pub fn as_string(&self) -> Result<&[u8], String> {
+        match self {
+            Value::String(s) => Ok(s),
+            Value::Number(_) => Err("Type mismatch: expected string".to_string()),
+        }
+    }
+
+    pub fn as_string_bytes(&self) -> Result<Vec<u8>, String> {
         match self {
             Value::String(s) => Ok(s.clone()),
             Value::Number(_) => Err("Type mismatch: expected string".to_string()),
@@ -58,7 +66,23 @@ impl Value {
                     formatted
                 }
             }
-            Value::String(s) => s.clone(),
+            Value::String(bytes) => {
+                // Convert PETSCII bytes to UTF-8 for display
+                // This is only for debug display, actual printing uses original bytes
+                String::from_utf8_lossy(bytes).to_string()
+            }
+        }
+    }
+
+    /// Get the PETSCII bytes for printing (preserves original bytes)
+    pub fn as_petscii_bytes(&self) -> Vec<u8> {
+        match self {
+            Value::Number(n) => {
+                // Convert number to string bytes
+                let s = self.to_display_string();
+                s.into_bytes()
+            }
+            Value::String(bytes) => bytes.clone(),
         }
     }
 }
@@ -75,14 +99,26 @@ impl From<f64> for Value {
     }
 }
 
+impl From<Vec<u8>> for Value {
+    fn from(bytes: Vec<u8>) -> Self {
+        Value::String(bytes)
+    }
+}
+
+impl From<&[u8]> for Value {
+    fn from(bytes: &[u8]) -> Self {
+        Value::String(bytes.to_vec())
+    }
+}
+
 impl From<String> for Value {
     fn from(s: String) -> Self {
-        Value::String(s)
+        Value::String(s.into_bytes())
     }
 }
 
 impl From<&str> for Value {
     fn from(s: &str) -> Self {
-        Value::String(s.to_string())
+        Value::String(s.as_bytes().to_vec())
     }
 }
