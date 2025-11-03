@@ -43,8 +43,8 @@ impl Screen {
             buffer: Arc::new(Mutex::new(vec![empty_row; SCREEN_HEIGHT])),
             cursor_x: Arc::new(Mutex::new(0)),
             cursor_y: Arc::new(Mutex::new(0)),
-            border_color: Arc::new(Mutex::new(Color::Green)),
-            background_color: Arc::new(Mutex::new(Color::Green)),
+            border_color: Arc::new(Mutex::new(Color::Rgb(0, 136, 85))),
+            background_color: Arc::new(Mutex::new(Color::Rgb(0, 136, 85))),
             reverse_mode: Arc::new(Mutex::new(false)),
             current_color: Arc::new(Mutex::new(Color::LightCyan)),
         }
@@ -142,8 +142,8 @@ impl Screen {
                     continue;
                 }
                 0x1E => {
-                    // GREEN color
-                    current_color = Color::Green;
+                    // GREEN color (C64 authentic dark green)
+                    current_color = Color::Rgb(0, 136, 85);
                     *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
@@ -215,7 +215,7 @@ impl Screen {
                 }
                 0x99 => {
                     // LIGHT GREEN color
-                    current_color = Color::LightGreen;
+                    current_color = Color::Rgb(136, 255, 136);
                     *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
@@ -338,7 +338,7 @@ impl Screen {
             2 => Color::Red,
             3 => Color::Cyan,
             4 => Color::Magenta,
-            5 => Color::Green,
+            5 => Color::Rgb(0, 136, 85), // C64 Green
             6 => Color::Blue,
             7 => Color::Yellow,
             8 => Color::LightRed,
@@ -346,7 +346,7 @@ impl Screen {
             10 => Color::LightRed,
             11 => Color::DarkGray,
             12 => Color::Gray,
-            13 => Color::LightGreen,
+            13 => Color::Rgb(136, 255, 136), // Light Green
             14 => Color::LightBlue,
             15 => Color::LightCyan,
             _ => Color::White,
