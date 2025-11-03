@@ -1,7 +1,7 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Style},
-    text::Line,
+    text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Wrap},
     Frame,
 };
@@ -10,31 +10,50 @@ use std::sync::{Arc, Mutex};
 const SCREEN_WIDTH: usize = 40; // C64 screen width
 const SCREEN_HEIGHT: usize = 25; // C64 screen height
 
+#[derive(Clone, Copy)]
+struct ScreenCell {
+    ch: char,
+    color: Color,
+}
+
+impl ScreenCell {
+    fn new() -> Self {
+        ScreenCell {
+            ch: ' ',
+            color: Color::LightCyan, // C64 default text color
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Screen {
-    buffer: Arc<Mutex<Vec<Vec<char>>>>,
+    buffer: Arc<Mutex<Vec<Vec<ScreenCell>>>>,
     cursor_x: Arc<Mutex<usize>>,
     cursor_y: Arc<Mutex<usize>>,
     border_color: Arc<Mutex<Color>>,
     background_color: Arc<Mutex<Color>>,
     reverse_mode: Arc<Mutex<bool>>,
+    current_color: Arc<Mutex<Color>>,
 }
 
 impl Screen {
     pub fn new() -> Self {
+        let empty_row = vec![ScreenCell::new(); SCREEN_WIDTH];
         Screen {
-            buffer: Arc::new(Mutex::new(vec![vec![' '; SCREEN_WIDTH]; SCREEN_HEIGHT])),
+            buffer: Arc::new(Mutex::new(vec![empty_row; SCREEN_HEIGHT])),
             cursor_x: Arc::new(Mutex::new(0)),
             cursor_y: Arc::new(Mutex::new(0)),
             border_color: Arc::new(Mutex::new(Color::Green)),
             background_color: Arc::new(Mutex::new(Color::Green)),
             reverse_mode: Arc::new(Mutex::new(false)),
+            current_color: Arc::new(Mutex::new(Color::LightCyan)),
         }
     }
 
     pub fn clear(&self) {
+        let empty_row = vec![ScreenCell::new(); SCREEN_WIDTH];
         let mut buffer = self.buffer.lock().unwrap();
-        *buffer = vec![vec![' '; SCREEN_WIDTH]; SCREEN_HEIGHT];
+        *buffer = vec![empty_row; SCREEN_HEIGHT];
         *self.cursor_x.lock().unwrap() = 0;
         *self.cursor_y.lock().unwrap() = 0;
     }
@@ -43,6 +62,7 @@ impl Screen {
         let mut buffer = self.buffer.lock().unwrap();
         let mut x = *self.cursor_x.lock().unwrap();
         let mut y = *self.cursor_y.lock().unwrap();
+        let mut current_color = *self.current_color.lock().unwrap();
 
         for ch in text.chars() {
             // Handle control codes (0x00-0x1F are control characters)
@@ -51,7 +71,9 @@ impl Screen {
             // Process C64 control codes
             match code {
                 0x05 => {
-                    // WHITE color - for now, just skip (no color support yet)
+                    // WHITE color
+                    current_color = Color::White;
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x08 => {
@@ -64,7 +86,7 @@ impl Screen {
                     x = 0;
                     if y >= SCREEN_HEIGHT {
                         buffer.remove(0);
-                        buffer.push(vec![' '; SCREEN_WIDTH]);
+                        buffer.push(vec![ScreenCell::new(); SCREEN_WIDTH]);
                         y = SCREEN_HEIGHT - 1;
                     }
                     continue;
@@ -74,7 +96,7 @@ impl Screen {
                     y += 1;
                     if y >= SCREEN_HEIGHT {
                         buffer.remove(0);
-                        buffer.push(vec![' '; SCREEN_WIDTH]);
+                        buffer.push(vec![ScreenCell::new(); SCREEN_WIDTH]);
                         y = SCREEN_HEIGHT - 1;
                     }
                     continue;
@@ -86,7 +108,7 @@ impl Screen {
                 }
                 0x13 => {
                     // HOME (clear screen)
-                    *buffer = vec![vec![' '; SCREEN_WIDTH]; SCREEN_HEIGHT];
+                    *buffer = vec![vec![ScreenCell::new(); SCREEN_WIDTH]; SCREEN_HEIGHT];
                     x = 0;
                     y = 0;
                     continue;
@@ -95,12 +117,14 @@ impl Screen {
                     // DELETE (backspace)
                     if x > 0 {
                         x -= 1;
-                        buffer[y][x] = ' ';
+                        buffer[y][x] = ScreenCell::new();
                     }
                     continue;
                 }
                 0x1C => {
-                    // RED color - skip for now
+                    // RED color
+                    current_color = Color::Red;
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x1D => {
@@ -111,27 +135,35 @@ impl Screen {
                         y += 1;
                         if y >= SCREEN_HEIGHT {
                             buffer.remove(0);
-                            buffer.push(vec![' '; SCREEN_WIDTH]);
+                            buffer.push(vec![ScreenCell::new(); SCREEN_WIDTH]);
                             y = SCREEN_HEIGHT - 1;
                         }
                     }
                     continue;
                 }
                 0x1E => {
-                    // GREEN color - skip for now
+                    // GREEN color
+                    current_color = Color::Green;
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x1F => {
-                    // BLUE color - skip for now
+                    // BLUE color
+                    current_color = Color::Blue;
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x81 => {
-                    // ORANGE color - skip
+                    // ORANGE color
+                    current_color = Color::Rgb(255, 165, 0);
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x90 => {
                     // BLACK (reverse off)
                     *self.reverse_mode.lock().unwrap() = false;
+                    current_color = Color::Black;
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x91 => {
@@ -148,7 +180,7 @@ impl Screen {
                 }
                 0x93 => {
                     // CLEAR SCREEN
-                    *buffer = vec![vec![' '; SCREEN_WIDTH]; SCREEN_HEIGHT];
+                    *buffer = vec![vec![ScreenCell::new(); SCREEN_WIDTH]; SCREEN_HEIGHT];
                     x = 0;
                     y = 0;
                     continue;
@@ -158,35 +190,51 @@ impl Screen {
                     continue;
                 }
                 0x95 => {
-                    // BROWN color - skip
+                    // BROWN color
+                    current_color = Color::Rgb(165, 82, 42);
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x96 => {
-                    // LIGHT RED color - skip
+                    // LIGHT RED color
+                    current_color = Color::LightRed;
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x97 => {
-                    // DARK GRAY color - skip
+                    // DARK GRAY color
+                    current_color = Color::DarkGray;
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x98 => {
-                    // MEDIUM GRAY color - skip
+                    // MEDIUM GRAY color
+                    current_color = Color::Gray;
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x99 => {
-                    // LIGHT GREEN color - skip
+                    // LIGHT GREEN color
+                    current_color = Color::LightGreen;
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x9A => {
-                    // LIGHT BLUE color - skip
+                    // LIGHT BLUE color
+                    current_color = Color::LightBlue;
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x9B => {
-                    // LIGHT GRAY color - skip
+                    // LIGHT GRAY color
+                    current_color = Color::LightCyan;
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x9C => {
-                    // PURPLE color - skip
+                    // PURPLE color
+                    current_color = Color::Magenta;
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x9D => {
@@ -197,11 +245,15 @@ impl Screen {
                     continue;
                 }
                 0x9E => {
-                    // YELLOW color - skip
+                    // YELLOW color
+                    current_color = Color::Yellow;
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 0x9F => {
-                    // CYAN color - skip
+                    // CYAN color
+                    current_color = Color::Cyan;
+                    *self.current_color.lock().unwrap() = current_color;
                     continue;
                 }
                 _ => {}
@@ -214,20 +266,23 @@ impl Screen {
                 if y >= SCREEN_HEIGHT {
                     // Scroll up
                     buffer.remove(0);
-                    buffer.push(vec![' '; SCREEN_WIDTH]);
+                    buffer.push(vec![ScreenCell::new(); SCREEN_WIDTH]);
                     y = SCREEN_HEIGHT - 1;
                 }
             } else {
-                // Print character at current position
+                // Print character at current position with current color
                 if y < SCREEN_HEIGHT && x < SCREEN_WIDTH {
-                    buffer[y][x] = ch;
+                    buffer[y][x] = ScreenCell {
+                        ch,
+                        color: current_color,
+                    };
                     x += 1;
                     if x >= SCREEN_WIDTH {
                         x = 0;
                         y += 1;
                         if y >= SCREEN_HEIGHT {
                             buffer.remove(0);
-                            buffer.push(vec![' '; SCREEN_WIDTH]);
+                            buffer.push(vec![ScreenCell::new(); SCREEN_WIDTH]);
                             y = SCREEN_HEIGHT - 1;
                         }
                     }
@@ -260,7 +315,13 @@ impl Screen {
         let buffer = self.buffer.lock().unwrap();
         buffer
             .iter()
-            .map(|row| row.iter().collect::<String>().trim_end().to_string())
+            .map(|row| {
+                row.iter()
+                    .map(|cell| cell.ch)
+                    .collect::<String>()
+                    .trim_end()
+                    .to_string()
+            })
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -346,10 +407,37 @@ impl Screen {
         let border_color = *self.border_color.lock().unwrap();
         let background_color = *self.background_color.lock().unwrap();
 
-        // Convert buffer to text lines
+        // Convert buffer to colored text lines
         let lines: Vec<Line> = buffer
             .iter()
-            .map(|row| Line::from(row.iter().collect::<String>()))
+            .map(|row| {
+                // Group consecutive characters with the same color into spans
+                let mut spans = Vec::new();
+                let mut current_color = row[0].color;
+                let mut current_text = String::new();
+
+                for cell in row.iter() {
+                    if cell.color == current_color {
+                        current_text.push(cell.ch);
+                    } else {
+                        // Color changed, push current span and start new one
+                        spans.push(Span::styled(
+                            current_text.clone(),
+                            Style::default().fg(current_color),
+                        ));
+                        current_text.clear();
+                        current_text.push(cell.ch);
+                        current_color = cell.color;
+                    }
+                }
+
+                // Push final span
+                if !current_text.is_empty() {
+                    spans.push(Span::styled(current_text, Style::default().fg(current_color)));
+                }
+
+                Line::from(spans)
+            })
             .collect();
 
         let paragraph = Paragraph::new(lines)
