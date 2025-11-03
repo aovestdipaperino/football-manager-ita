@@ -252,6 +252,11 @@ impl Interpreter {
                 .collect();
             let index_values = index_values?;
 
+            // C64 BASIC auto-dimensions arrays on first use (0-10)
+            if !self.array_dimensions.contains_key(&stmt.variable) {
+                self.auto_dimension_array(&stmt.variable, indices.len())?;
+            }
+
             let dims = self.array_dimensions.get(&stmt.variable)
                 .ok_or_else(|| format!("Array {} not dimensioned", stmt.variable))?.clone();
 
@@ -450,6 +455,29 @@ impl Interpreter {
         }
     }
 
+    fn auto_dimension_array(&mut self, name: &str, num_dimensions: usize) -> Result<(), String> {
+        // C64 BASIC auto-dimensions arrays to (0-10) on first use
+        // This gives 11 elements per dimension
+        let default_size = 11;
+
+        let dims = vec![default_size; num_dimensions];
+        let total_size = dims.iter().product();
+
+        // Create array filled with default values (0 for numbers, "" for strings)
+        let default_value = if name.ends_with('$') {
+            Value::String(String::new())
+        } else {
+            Value::Number(0.0)
+        };
+
+        let array = vec![default_value; total_size];
+
+        self.arrays.insert(name.to_string(), array);
+        self.array_dimensions.insert(name.to_string(), dims);
+
+        Ok(())
+    }
+
     fn calculate_flat_index(&self, indices: &[usize], dims: &[usize]) -> Result<usize, String> {
         if indices.len() != dims.len() {
             return Err("Array dimension mismatch".to_string());
@@ -492,6 +520,11 @@ impl Interpreter {
                     .map(|e| Ok(self.eval_expr(e)?.as_int()? as usize))
                     .collect();
                 let index_values = index_values?;
+
+                // C64 BASIC auto-dimensions arrays on first use (0-10)
+                if !self.array_dimensions.contains_key(name) {
+                    self.auto_dimension_array(name, indices.len())?;
+                }
 
                 let array = self.arrays.get(name)
                     .ok_or_else(|| format!("Array {} not dimensioned", name))?;
