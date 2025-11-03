@@ -6,6 +6,7 @@ use ratatui::{
     Frame,
 };
 use std::sync::{Arc, Mutex};
+use crate::petscii::{build_petscii_table, PetASCII};
 
 const SCREEN_WIDTH: usize = 40; // C64 screen width
 const SCREEN_HEIGHT: usize = 25; // C64 screen height
@@ -34,6 +35,7 @@ pub struct Screen {
     background_color: Arc<Mutex<Color>>,
     reverse_mode: Arc<Mutex<bool>>,
     current_color: Arc<Mutex<Color>>,
+    petscii_table: Arc<[PetASCII; 256]>,
 }
 
 impl Screen {
@@ -47,6 +49,7 @@ impl Screen {
             background_color: Arc::new(Mutex::new(Color::Rgb(0, 136, 85))),
             reverse_mode: Arc::new(Mutex::new(false)),
             current_color: Arc::new(Mutex::new(Color::LightCyan)),
+            petscii_table: Arc::new(build_petscii_table()),
         }
     }
 
@@ -272,8 +275,15 @@ impl Screen {
             } else {
                 // Print character at current position with current color
                 if y < SCREEN_HEIGHT && x < SCREEN_WIDTH {
+                    // Look up PETSCII character and map to Unicode for display
+                    let byte = ch as u8;
+                    let display_ch = match self.petscii_table[byte as usize] {
+                        PetASCII::Unicode(unicode_ch) => unicode_ch,
+                        PetASCII::Control(_) => ch, // Control codes shouldn't reach here, pass through
+                    };
+
                     buffer[y][x] = ScreenCell {
-                        ch,
+                        ch: display_ch,
                         color: current_color,
                     };
                     x += 1;
@@ -350,40 +360,6 @@ impl Screen {
             14 => Color::LightBlue,
             15 => Color::LightCyan,
             _ => Color::White,
-        }
-    }
-
-    fn map_petscii(&self, ch: char) -> char {
-        // Map PETSCII graphics to Unicode box-drawing characters
-        match ch {
-            // Box drawing characters
-            '│' => '│', // [SIDE] - vertical line (already Unicode)
-            '─' => '─', // [BORDERS] - horizontal line (already Unicode)
-            '┌' => '┌', // Top-left corner
-            '┐' => '┐', // Top-right corner
-            '└' => '└', // Bottom-left corner
-            '┘' => '┘', // Bottom-right corner
-            '├' => '├', // Left T-junction
-            '┤' => '┤', // Right T-junction
-            '┬' => '┬', // Top T-junction
-            '┴' => '┴', // Bottom T-junction
-            '┼' => '┼', // Cross
-
-            // Special graphics
-            '●' => '●', // [BALL] - soccer ball (already Unicode)
-            '▒' => '▒', // [FIELD] - field/grass (already Unicode)
-            '█' => '█', // Solid block
-            '▓' => '▓', // Dark shade
-            '░' => '░', // Light shade
-
-            // PETSCII codes that need mapping
-            '\u{00DD}' => '│', // PETSCII 221 - vertical line
-            '\u{00A3}' => '─', // PETSCII 163 - horizontal line
-            '\u{0051}' => '●', // PETSCII 81 - ball
-            '\u{00A0}' => '▒', // PETSCII 160 - field
-
-            // Pass through everything else
-            _ => ch,
         }
     }
 
