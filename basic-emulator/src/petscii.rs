@@ -10,19 +10,13 @@ use std::collections::HashMap;
 /// Convert a PETSCII byte to an ASCII-safe character or control sequence
 /// Returns (character, is_control_code)
 /// Uses ASCII approximations to avoid multi-byte UTF-8 issues in the parser
+///
+/// NOTE: Control codes are returned as-is (with is_control=true) so they can
+/// be processed by the screen module for cursor movement, colors, etc.
 pub fn petscii_to_ascii(byte: u8) -> (char, bool) {
     match byte {
-        // Control codes (0x00-0x1F)
-        0x05 => ('#', false), // White color (show as #)
-        0x0D => (' ', true),  // Return
-        0x11 => (' ', true),  // Cursor down
-        0x12 => (' ', true),  // Reverse on
-        0x13 => (' ', true),  // Home
-        0x14 => (' ', true),  // Delete
-        0x1C => ('#', false), // Red
-        0x1D => (' ', true),  // Cursor right
-        0x1E => ('#', false), // Green
-        0x1F => ('#', false), // Blue
+        // Control codes (0x00-0x1F) - pass through for screen handling
+        0x00..=0x1F => (byte as char, true),
 
         // Standard ASCII range (0x20-0x5F)
         0x20..=0x5F => (byte as char, false),
@@ -36,24 +30,8 @@ pub fn petscii_to_ascii(byte: u8) -> (char, bool) {
         0x7E => ('~', false),
         0x7F => ('.', false),
 
-        // Control codes (0x80-0x9F)
-        0x81 => ('#', false), // Orange
-        0x90 => (' ', true),  // Black (reverse off)
-        0x91 => (' ', true),  // Cursor up
-        0x92 => (' ', true),  // Reverse off
-        0x93 => (' ', true),  // Clear screen
-        0x94 => (' ', true),  // Insert
-        0x95 => ('#', false), // Brown
-        0x96 => ('#', false), // Light red
-        0x97 => ('#', false), // Dark gray
-        0x98 => ('#', false), // Medium gray
-        0x99 => ('#', false), // Light green
-        0x9A => ('#', false), // Light blue
-        0x9B => ('#', false), // Light gray
-        0x9C => ('#', false), // Purple
-        0x9D => (' ', true),  // Cursor left
-        0x9E => ('#', false), // Yellow
-        0x9F => ('#', false), // Cyan
+        // Control codes (0x80-0x9F) - pass through for screen handling
+        0x80..=0x9F => (byte as char, true),
 
         // PETSCII box drawing and graphics (0xA0-0xBF) - ASCII approximations
         0xA0 => (' ', false), // NBSP / Shifted space

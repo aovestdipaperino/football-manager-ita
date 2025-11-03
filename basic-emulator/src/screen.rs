@@ -44,8 +44,170 @@ impl Screen {
         let mut x = *self.cursor_x.lock().unwrap();
         let mut y = *self.cursor_y.lock().unwrap();
 
-        let mut chars = text.chars().peekable();
-        while let Some(ch) = chars.next() {
+        for ch in text.chars() {
+            // Handle control codes (0x00-0x1F are control characters)
+            let code = ch as u32;
+
+            // Process C64 control codes
+            match code {
+                0x05 => {
+                    // WHITE color - for now, just skip (no color support yet)
+                    continue;
+                }
+                0x08 => {
+                    // DISABLE SHIFT+COMMODORE - skip
+                    continue;
+                }
+                0x0D => {
+                    // RETURN (newline)
+                    y += 1;
+                    x = 0;
+                    if y >= SCREEN_HEIGHT {
+                        buffer.remove(0);
+                        buffer.push(vec![' '; SCREEN_WIDTH]);
+                        y = SCREEN_HEIGHT - 1;
+                    }
+                    continue;
+                }
+                0x11 => {
+                    // CURSOR DOWN
+                    y += 1;
+                    if y >= SCREEN_HEIGHT {
+                        buffer.remove(0);
+                        buffer.push(vec![' '; SCREEN_WIDTH]);
+                        y = SCREEN_HEIGHT - 1;
+                    }
+                    continue;
+                }
+                0x12 => {
+                    // REVERSE ON
+                    *self.reverse_mode.lock().unwrap() = true;
+                    continue;
+                }
+                0x13 => {
+                    // HOME (clear screen)
+                    *buffer = vec![vec![' '; SCREEN_WIDTH]; SCREEN_HEIGHT];
+                    x = 0;
+                    y = 0;
+                    continue;
+                }
+                0x14 => {
+                    // DELETE (backspace)
+                    if x > 0 {
+                        x -= 1;
+                        buffer[y][x] = ' ';
+                    }
+                    continue;
+                }
+                0x1C => {
+                    // RED color - skip for now
+                    continue;
+                }
+                0x1D => {
+                    // CURSOR RIGHT
+                    x += 1;
+                    if x >= SCREEN_WIDTH {
+                        x = 0;
+                        y += 1;
+                        if y >= SCREEN_HEIGHT {
+                            buffer.remove(0);
+                            buffer.push(vec![' '; SCREEN_WIDTH]);
+                            y = SCREEN_HEIGHT - 1;
+                        }
+                    }
+                    continue;
+                }
+                0x1E => {
+                    // GREEN color - skip for now
+                    continue;
+                }
+                0x1F => {
+                    // BLUE color - skip for now
+                    continue;
+                }
+                0x81 => {
+                    // ORANGE color - skip
+                    continue;
+                }
+                0x90 => {
+                    // BLACK (reverse off)
+                    *self.reverse_mode.lock().unwrap() = false;
+                    continue;
+                }
+                0x91 => {
+                    // CURSOR UP
+                    if y > 0 {
+                        y -= 1;
+                    }
+                    continue;
+                }
+                0x92 => {
+                    // REVERSE OFF
+                    *self.reverse_mode.lock().unwrap() = false;
+                    continue;
+                }
+                0x93 => {
+                    // CLEAR SCREEN
+                    *buffer = vec![vec![' '; SCREEN_WIDTH]; SCREEN_HEIGHT];
+                    x = 0;
+                    y = 0;
+                    continue;
+                }
+                0x94 => {
+                    // INSERT - skip for now
+                    continue;
+                }
+                0x95 => {
+                    // BROWN color - skip
+                    continue;
+                }
+                0x96 => {
+                    // LIGHT RED color - skip
+                    continue;
+                }
+                0x97 => {
+                    // DARK GRAY color - skip
+                    continue;
+                }
+                0x98 => {
+                    // MEDIUM GRAY color - skip
+                    continue;
+                }
+                0x99 => {
+                    // LIGHT GREEN color - skip
+                    continue;
+                }
+                0x9A => {
+                    // LIGHT BLUE color - skip
+                    continue;
+                }
+                0x9B => {
+                    // LIGHT GRAY color - skip
+                    continue;
+                }
+                0x9C => {
+                    // PURPLE color - skip
+                    continue;
+                }
+                0x9D => {
+                    // CURSOR LEFT
+                    if x > 0 {
+                        x -= 1;
+                    }
+                    continue;
+                }
+                0x9E => {
+                    // YELLOW color - skip
+                    continue;
+                }
+                0x9F => {
+                    // CYAN color - skip
+                    continue;
+                }
+                _ => {}
+            }
+
+            // Regular printable character
             if ch == '\n' {
                 y += 1;
                 x = 0;
@@ -55,71 +217,19 @@ impl Screen {
                     buffer.push(vec![' '; SCREEN_WIDTH]);
                     y = SCREEN_HEIGHT - 1;
                 }
-            } else if ch == '[' {
-                // Parse placeholder
-                let mut placeholder = String::new();
-                while let Some(&next_ch) = chars.peek() {
-                    if next_ch == ']' {
-                        chars.next(); // consume ]
-                        break;
-                    }
-                    placeholder.push(chars.next().unwrap());
-                }
-
-                // Handle known placeholders
-                match placeholder.as_str() {
-                    "CLR" => {
-                        // Clear screen
-                        *buffer = vec![vec![' '; SCREEN_WIDTH]; SCREEN_HEIGHT];
-                        x = 0;
-                        y = 0;
-                    }
-                    "REVERSE" => {
-                        self.set_reverse_mode(true);
-                    }
-                    "SIDE" => {
-                        if x < SCREEN_WIDTH {
-                            buffer[y][x] = '│';
-                            x += 1;
-                        }
-                    }
-                    "BORDERS" => {
-                        if x < SCREEN_WIDTH {
-                            buffer[y][x] = '─';
-                            x += 1;
-                        }
-                    }
-                    "BALL" => {
-                        if x < SCREEN_WIDTH {
-                            buffer[y][x] = '●';
-                            x += 1;
-                        }
-                    }
-                    "FIELD" => {
-                        if x < SCREEN_WIDTH {
-                            buffer[y][x] = '▒';
-                            x += 1;
-                        }
-                    }
-                    _ => {
-                        // Unknown placeholder - ignore
-                    }
-                }
             } else {
-                let display_char = self.map_petscii(ch);
-
-                if x < SCREEN_WIDTH {
-                    buffer[y][x] = display_char;
+                // Print character at current position
+                if y < SCREEN_HEIGHT && x < SCREEN_WIDTH {
+                    buffer[y][x] = ch;
                     x += 1;
-                }
-
-                if x >= SCREEN_WIDTH {
-                    y += 1;
-                    x = 0;
-                    if y >= SCREEN_HEIGHT {
-                        buffer.remove(0);
-                        buffer.push(vec![' '; SCREEN_WIDTH]);
-                        y = SCREEN_HEIGHT - 1;
+                    if x >= SCREEN_WIDTH {
+                        x = 0;
+                        y += 1;
+                        if y >= SCREEN_HEIGHT {
+                            buffer.remove(0);
+                            buffer.push(vec![' '; SCREEN_WIDTH]);
+                            y = SCREEN_HEIGHT - 1;
+                        }
                     }
                 }
             }

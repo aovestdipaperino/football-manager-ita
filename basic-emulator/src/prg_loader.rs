@@ -171,7 +171,8 @@ pub fn detokenize_program(bytes: &[u8]) -> Result<String, String> {
             if in_quotes || in_rem {
                 // Convert PETSCII to ASCII
                 let (ch, is_control) = petscii_to_ascii(byte);
-                // Skip control codes in output (they don't print)
+                // Skip control codes in detokenized source (they'll be in CHR$ calls)
+                // Control codes would break the parser's byte indexing
                 if !is_control {
                     result.push(ch);
                 }
@@ -238,6 +239,7 @@ pub fn detokenize_program(bytes: &[u8]) -> Result<String, String> {
             } else {
                 // Regular character (not a token)
                 let (ch, is_control) = petscii_to_ascii(byte);
+                // Skip control codes in detokenized source
                 if !is_control {
                     result.push(ch);
                 }
