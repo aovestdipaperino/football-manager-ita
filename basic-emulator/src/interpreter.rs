@@ -3,6 +3,7 @@ use crate::screen::Screen;
 use crate::value::Value;
 use rand::Rng;
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 struct ForLoop {
     variable: String,
@@ -10,6 +11,7 @@ struct ForLoop {
     step: f64,
     line_num: u32,
     statement_idx: usize,
+    last_iteration_time: Option<Instant>,
 }
 
 pub struct Interpreter {
@@ -356,6 +358,7 @@ impl Interpreter {
             step,
             line_num: self.current_line.unwrap(),
             statement_idx: self.statement_idx,
+            last_iteration_time: Some(Instant::now()),
         });
 
         Ok(())
@@ -364,6 +367,17 @@ impl Interpreter {
     fn exec_next(&mut self, _var: &Option<String>) -> Result<(), String> {
         let for_loop = self.for_stack.last_mut()
             .ok_or_else(|| "NEXT without FOR".to_string())?;
+
+        // Check if this is an empty loop (NEXT immediately after FOR)
+        // If iteration is happening very quickly, add a delay
+        if let Some(last_time) = for_loop.last_iteration_time {
+            let elapsed = last_time.elapsed();
+            if elapsed < Duration::from_millis(1) {
+                // Empty loop detected - add delay to prevent CPU spinning
+                std::thread::sleep(Duration::from_millis(5));
+            }
+        }
+        for_loop.last_iteration_time = Some(Instant::now());
 
         // Increment loop variable
         let current_value = self.variables.get(&for_loop.variable)
