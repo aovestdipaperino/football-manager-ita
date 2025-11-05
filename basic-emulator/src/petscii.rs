@@ -49,12 +49,35 @@ pub fn build_petscii_table_uppercase() -> [PetASCII; 256] {
     table[0x2B] = PetASCII::Unicode('┼'); // '+' → cross (from 0xB6, etc.)
     table[0x23] = PetASCII::Unicode('█'); // '#' → full block (from 0xDB)
 
-    // PETSCII graphics (0x60-0x7F)
+    // PETSCII graphics (0x60-0x7F) - UPPERCASE/GRAPHICS mode
+    // In this mode, these are box drawing characters, NOT letters!
     table[0x60] = PetASCII::Unicode('─'); // Horizontal line
-    for i in 0x61..=0x7A {
-        // Lowercase -> uppercase
-        table[i] = PetASCII::Unicode((i - 0x60 + 0x41) as u8 as char);
-    }
+    table[0x61] = PetASCII::Unicode('│'); // Vertical line
+    table[0x62] = PetASCII::Unicode('┌'); // Top-left corner
+    table[0x63] = PetASCII::Unicode('┐'); // Top-right corner
+    table[0x64] = PetASCII::Unicode('└'); // Bottom-left corner
+    table[0x65] = PetASCII::Unicode('┘'); // Bottom-right corner
+    table[0x66] = PetASCII::Unicode('├'); // Left T
+    table[0x67] = PetASCII::Unicode('┤'); // Right T
+    table[0x68] = PetASCII::Unicode('┬'); // Top T
+    table[0x69] = PetASCII::Unicode('┴'); // Bottom T
+    table[0x6A] = PetASCII::Unicode('┼'); // Cross
+    table[0x6B] = PetASCII::Unicode('╭'); // Rounded top-left
+    table[0x6C] = PetASCII::Unicode('╮'); // Rounded top-right
+    table[0x6D] = PetASCII::Unicode('╯'); // Rounded bottom-right
+    table[0x6E] = PetASCII::Unicode('╰'); // Rounded bottom-left
+    table[0x6F] = PetASCII::Unicode('◥'); // Triangle upper right
+    table[0x70] = PetASCII::Unicode('◤'); // Triangle upper left
+    table[0x71] = PetASCII::Unicode('◢'); // Triangle lower right
+    table[0x72] = PetASCII::Unicode('◣'); // Triangle lower left
+    table[0x73] = PetASCII::Unicode('●'); // Filled circle
+    table[0x74] = PetASCII::Unicode('○'); // Hollow circle
+    table[0x75] = PetASCII::Unicode('▌'); // Left half block
+    table[0x76] = PetASCII::Unicode('▐'); // Right half block
+    table[0x77] = PetASCII::Unicode('▄'); // Lower half block
+    table[0x78] = PetASCII::Unicode('▀'); // Upper half block
+    table[0x79] = PetASCII::Unicode('█'); // Full block
+    table[0x7A] = PetASCII::Unicode('░'); // Light shade
     table[0x7B] = PetASCII::Unicode('┼'); // Cross
     table[0x7C] = PetASCII::Unicode('│'); // Vertical line
     table[0x7D] = PetASCII::Unicode('┼'); // Cross variant
