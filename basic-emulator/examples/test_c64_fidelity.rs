@@ -2,7 +2,6 @@
 ///
 /// This tool runs test programs and compares output with expected C64 behavior.
 /// Reference outputs should be captured from VICE emulator.
-
 use basic_emulator::interpreter::Interpreter;
 use basic_emulator::parser::Parser;
 use basic_emulator::screen::Screen;
@@ -49,9 +48,8 @@ fn main() {
 20 PRINT INT(5/2)
 30 PRINT 10/3
 "#,
-            expected_output: " 2.5\n 2\n 3.333333333\n",  // Trailing spaces trimmed at end of line
+            expected_output: " 2.5\n 2\n 3.333333333\n", // Trailing spaces trimmed at end of line
         },
-
         TestCase {
             name: "print_zones",
             description: "Test PRINT comma zones (10 char width)",
@@ -61,7 +59,6 @@ fn main() {
 "#,
             expected_output: "A         B         C\nHELLO     WORLD\n",
         },
-
         TestCase {
             name: "print_semicolon",
             description: "Test PRINT semicolon (no space)",
@@ -71,7 +68,6 @@ fn main() {
 "#,
             expected_output: "ABC\nHELLOWORLD\n",
         },
-
         TestCase {
             name: "string_concatenation",
             description: "Test string concatenation with +",
@@ -82,7 +78,6 @@ fn main() {
 "#,
             expected_output: "HELLOWORLD\n",
         },
-
         TestCase {
             name: "array_bounds",
             description: "Test DIM A(10) creates 11 elements (0-10)",
@@ -94,7 +89,6 @@ fn main() {
 "#,
             expected_output: " 100       200\n",
         },
-
         TestCase {
             name: "variable_initialization",
             description: "Test uninitialized variables are 0 or empty string",
@@ -105,7 +99,6 @@ fn main() {
 "#,
             expected_output: " 0\n\n 0\n",
         },
-
         TestCase {
             name: "for_loop_step",
             description: "Test FOR loop with STEP",
@@ -114,9 +107,8 @@ fn main() {
 20 PRINT I;
 30 NEXT I
 "#,
-            expected_output: " 1  3  5  7  9",  // C64 adds space before and after each number
+            expected_output: " 1  3  5  7  9", // C64 adds space before and after each number
         },
-
         TestCase {
             name: "for_loop_single_iteration",
             description: "Test FOR loop with start=end",
@@ -127,7 +119,6 @@ fn main() {
 "#,
             expected_output: " 5\n",
         },
-
         TestCase {
             name: "nested_for_loops",
             description: "Test nested FOR loops",
@@ -138,9 +129,8 @@ fn main() {
 40 NEXT J
 50 NEXT I
 "#,
-            expected_output: " 1  1  1  2  2  1  2  2  3  1  3  2",  // C64 adds space before and after each number
+            expected_output: " 1  1  1  2  2  1  2  2  3  1  3  2", // C64 adds space before and after each number
         },
-
         TestCase {
             name: "if_then_goto",
             description: "Test IF-THEN-GOTO",
@@ -154,7 +144,6 @@ fn main() {
 "#,
             expected_output: "YES\nDONE\n",
         },
-
         TestCase {
             name: "gosub_return",
             description: "Test GOSUB and RETURN",
@@ -167,7 +156,6 @@ fn main() {
 "#,
             expected_output: "SUB\nMAIN\n",
         },
-
         TestCase {
             name: "data_read",
             description: "Test DATA and READ",
@@ -176,9 +164,8 @@ fn main() {
 20 READ A,B,C
 30 PRINT A;B;C
 "#,
-            expected_output: " 10  20  30",  // C64 adds space before and after each number
+            expected_output: " 10  20  30", // C64 adds space before and after each number
         },
-
         TestCase {
             name: "string_functions",
             description: "Test CHR$, ASC, LEN",
@@ -190,7 +177,6 @@ fn main() {
 "#,
             expected_output: " 5\n 72\nH\n",
         },
-
         TestCase {
             name: "mid_function",
             description: "Test MID$ function",
@@ -200,7 +186,6 @@ fn main() {
 "#,
             expected_output: "ELL\n",
         },
-
         TestCase {
             name: "val_str_functions",
             description: "Test VAL and STR$",
@@ -210,7 +195,6 @@ fn main() {
 "#,
             expected_output: " 123\n 456\n",
         },
-
         TestCase {
             name: "comparison_operators",
             description: "Test comparison operators",
@@ -222,7 +206,6 @@ fn main() {
 "#,
             expected_output: "-1\n 0\n-1\n-1\n",
         },
-
         TestCase {
             name: "logical_operators",
             description: "Test AND, OR, NOT",
@@ -269,7 +252,10 @@ fn main() {
     }
 
     println!("\n==============================");
-    println!("Results: {} passed, {} failed, {} errors", passed, failed, errors);
+    println!(
+        "Results: {} passed, {} failed, {} errors",
+        passed, failed, errors
+    );
 
     if failed > 0 || errors > 0 {
         std::process::exit(1);

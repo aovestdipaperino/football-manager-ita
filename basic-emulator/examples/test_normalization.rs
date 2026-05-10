@@ -5,12 +5,7 @@ fn main() {
     // Can't access the normalized string directly, so let's create a test
     println!("Testing normalization...");
 
-    let test_inputs = vec![
-        "PRINTCHR$(142)",
-        "GOSUB2000",
-        "IFGG<>4",
-        "FORAPE=1TO16",
-    ];
+    let test_inputs = vec!["PRINTCHR$(142)", "GOSUB2000", "IFGG<>4", "FORAPE=1TO16"];
 
     for test in test_inputs {
         println!("\nInput:  {}", test);

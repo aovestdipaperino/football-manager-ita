@@ -1,11 +1,11 @@
+use crate::game_state::{league_name, GameState};
+use crate::player::PlayerStatus;
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},
     Frame,
 };
-use crate::game_state::{GameState, league_name};
-use crate::player::PlayerStatus;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Screen {
@@ -65,7 +65,11 @@ impl UI {
             .split(f.area());
 
         let title = Paragraph::new("⚽ FOOTBALL MANAGER ⚽")
-            .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+            .style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
             .block(Block::default().borders(Borders::ALL));
         f.render_widget(title, chunks[0]);
 
@@ -77,7 +81,11 @@ impl UI {
 
         let list = List::new(items)
             .block(Block::default().borders(Borders::ALL).title("Menu"))
-            .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+            .highlight_style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            );
 
         f.render_widget(list, chunks[1]);
 
@@ -98,15 +106,24 @@ impl UI {
             .split(f.area());
 
         let title = Paragraph::new("Select Your Team")
-            .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+            .style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
             .block(Block::default().borders(Borders::ALL));
         f.render_widget(title, chunks[0]);
 
         // Show all 64 teams across all leagues
         let mut items = Vec::new();
         for league in 1..=4 {
-            items.push(ListItem::new(format!("\n=== {} ===", league_name(league)))
-                .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)));
+            items.push(
+                ListItem::new(format!("\n=== {} ===", league_name(league))).style(
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                ),
+            );
 
             let teams = game.get_league_teams(league);
             for team in teams {
@@ -116,13 +133,17 @@ impl UI {
 
         let list = List::new(items)
             .block(Block::default().borders(Borders::ALL).title("Teams"))
-            .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+            .highlight_style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            );
 
         f.render_widget(list, chunks[1]);
 
         let help = Paragraph::new(
             "↑↓: Navigate | Enter: Select team | ESC: Back\n\
-             Choose a team from any division"
+             Choose a team from any division",
         )
         .style(Style::default().fg(Color::DarkGray));
         f.render_widget(help, chunks[2]);
@@ -169,7 +190,11 @@ impl UI {
 
         let list = List::new(items)
             .block(Block::default().borders(Borders::ALL).title("Main Menu"))
-            .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+            .highlight_style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            );
 
         f.render_widget(list, chunks[1]);
 
@@ -190,16 +215,26 @@ impl UI {
             .split(f.area());
 
         let title = Paragraph::new(format!("Squad: {}", game.player_team().name))
-            .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+            .style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
             .block(Block::default().borders(Borders::ALL));
         f.render_widget(title, chunks[0]);
 
         let mut items = Vec::new();
-        items.push(ListItem::new(format!(
-            "{:<3} {:<15} {:<8} {:<6} {:<6} {:<10} {:<8}",
-            "ID", "Name", "Pos", "Style", "Power", "Value", "Status"
-        ))
-        .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)));
+        items.push(
+            ListItem::new(format!(
+                "{:<3} {:<15} {:<8} {:<6} {:<6} {:<10} {:<8}",
+                "ID", "Name", "Pos", "Style", "Power", "Value", "Status"
+            ))
+            .style(
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
+        );
 
         for (idx, player) in game.players.iter().enumerate() {
             if !matches!(player.status, PlayerStatus::NotOwned) {
@@ -227,14 +262,14 @@ impl UI {
             }
         }
 
-        let list = List::new(items)
-            .block(Block::default().borders(Borders::ALL).title("Your Players"));
+        let list =
+            List::new(items).block(Block::default().borders(Borders::ALL).title("Your Players"));
 
         f.render_widget(list, chunks[1]);
 
         let help = Paragraph::new(
             "* = Injured | S = Substitute | G = Playing\n\
-             ESC: Back to menu"
+             ESC: Back to menu",
         )
         .style(Style::default().fg(Color::DarkGray));
         f.render_widget(help, chunks[2]);
@@ -256,22 +291,34 @@ impl UI {
             league_name(game.current_league),
             game.matches_played
         ))
-        .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+        .style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )
         .block(Block::default().borders(Borders::ALL));
         f.render_widget(title, chunks[0]);
 
         let mut items = Vec::new();
-        items.push(ListItem::new(format!(
-            "{:<3} {:<20} {:<4} {:<4} {:<6} {:<5}",
-            "Pos", "Team", "GF", "GA", "Pts", "GD"
-        ))
-        .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)));
+        items.push(
+            ListItem::new(format!(
+                "{:<3} {:<20} {:<4} {:<4} {:<6} {:<5}",
+                "Pos", "Team", "GF", "GA", "Pts", "GD"
+            ))
+            .style(
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
+        );
 
         let standings = game.get_league_standings();
         for (pos, (team_id, team)) in standings.iter().enumerate() {
             let is_player = *team_id == game.player_team_id;
             let style = if is_player {
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default()
             };
@@ -289,13 +336,15 @@ impl UI {
             items.push(ListItem::new(item_text).style(style));
         }
 
-        let list = List::new(items)
-            .block(Block::default().borders(Borders::ALL).title("Table"));
+        let list = List::new(items).block(Block::default().borders(Borders::ALL).title("Table"));
 
         f.render_widget(list, chunks[1]);
 
-        let help = Paragraph::new(format!("Your position: {}  |  ESC: Back", game.player_position()))
-            .style(Style::default().fg(Color::DarkGray));
+        let help = Paragraph::new(format!(
+            "Your position: {}  |  ESC: Back",
+            game.player_position()
+        ))
+        .style(Style::default().fg(Color::DarkGray));
         f.render_widget(help, chunks[2]);
     }
 
@@ -311,7 +360,11 @@ impl UI {
             .split(f.area());
 
         let title = Paragraph::new("Team Finances")
-            .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+            .style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
             .block(Block::default().borders(Borders::ALL));
         f.render_widget(title, chunks[0]);
 
@@ -319,7 +372,8 @@ impl UI {
         let management_rating = if game.seasons_played == 1 {
             20
         } else {
-            game.management_level.saturating_sub(game.seasons_played - 1)
+            game.management_level
+                .saturating_sub(game.seasons_played - 1)
         };
 
         let info_text = format!(
@@ -356,8 +410,7 @@ impl UI {
 
         f.render_widget(paragraph, chunks[1]);
 
-        let help = Paragraph::new("ESC: Back to menu")
-            .style(Style::default().fg(Color::DarkGray));
+        let help = Paragraph::new("ESC: Back to menu").style(Style::default().fg(Color::DarkGray));
         f.render_widget(help, chunks[2]);
     }
 
@@ -373,13 +426,17 @@ impl UI {
             .split(f.area());
 
         let title = Paragraph::new("Transfer Market")
-            .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+            .style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
             .block(Block::default().borders(Borders::ALL));
         f.render_widget(title, chunks[0]);
 
         let help = Paragraph::new(
             "Buy and sell players here\n\
-             ESC: Back to menu"
+             ESC: Back to menu",
         )
         .style(Style::default().fg(Color::DarkGray));
         f.render_widget(help, chunks[2]);
@@ -397,7 +454,11 @@ impl UI {
             .split(f.area());
 
         let title = Paragraph::new("SPORT BANK")
-            .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+            .style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
             .block(Block::default().borders(Borders::ALL));
         f.render_widget(title, chunks[0]);
 
@@ -422,7 +483,11 @@ impl UI {
         );
 
         let paragraph = Paragraph::new(info)
-            .block(Block::default().borders(Borders::ALL).title("Loan Information"))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Loan Information"),
+            )
             .wrap(Wrap { trim: true });
 
         f.render_widget(paragraph, chunks[1]);

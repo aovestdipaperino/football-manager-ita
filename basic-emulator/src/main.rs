@@ -54,24 +54,21 @@ fn main() -> io::Result<()> {
     // Load the program source
     let source = if prg_mode {
         // Load and detokenize PRG file
-        let bytes = load_prg_file(&filename)
-            .unwrap_or_else(|e| {
-                eprintln!("Error reading PRG file {}: {}", filename, e);
-                process::exit(1);
-            });
+        let bytes = load_prg_file(&filename).unwrap_or_else(|e| {
+            eprintln!("Error reading PRG file {}: {}", filename, e);
+            process::exit(1);
+        });
 
-        detokenize_program(&bytes)
-            .unwrap_or_else(|e| {
-                eprintln!("Error detokenizing PRG file {}: {}", filename, e);
-                process::exit(1);
-            })
+        detokenize_program(&bytes).unwrap_or_else(|e| {
+            eprintln!("Error detokenizing PRG file {}: {}", filename, e);
+            process::exit(1);
+        })
     } else {
         // Load plain text BASIC file
-        fs::read_to_string(&filename)
-            .unwrap_or_else(|e| {
-                eprintln!("Error reading file {}: {}", filename, e);
-                process::exit(1);
-            })
+        fs::read_to_string(&filename).unwrap_or_else(|e| {
+            eprintln!("Error reading file {}: {}", filename, e);
+            process::exit(1);
+        })
     };
 
     // Setup terminal
@@ -184,6 +181,12 @@ fn print_usage(program_name: &str) {
     eprintln!("  --prg    Load a tokenized Commodore 64 PRG file instead of plain text BASIC");
     eprintln!();
     eprintln!("Examples:");
-    eprintln!("  {} program.bas           # Load plain text BASIC file", program_name);
-    eprintln!("  {} --prg program.prg     # Load tokenized PRG file", program_name);
+    eprintln!(
+        "  {} program.bas           # Load plain text BASIC file",
+        program_name
+    );
+    eprintln!(
+        "  {} --prg program.prg     # Load tokenized PRG file",
+        program_name
+    );
 }

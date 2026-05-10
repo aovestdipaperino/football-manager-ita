@@ -54,7 +54,10 @@ impl Value {
                     // Trim trailing zeros after decimal point
                     let mut result = s;
                     if result.contains('.') {
-                        result = result.trim_end_matches('0').trim_end_matches('.').to_string();
+                        result = result
+                            .trim_end_matches('0')
+                            .trim_end_matches('.')
+                            .to_string();
                     }
                     result
                 };

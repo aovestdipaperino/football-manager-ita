@@ -1,6 +1,6 @@
-use rand::Rng;
 use crate::game_state::GameState;
 use crate::player::PlayerStatus;
+use rand::Rng;
 
 pub struct Market {
     rng: rand::rngs::ThreadRng,
@@ -96,9 +96,8 @@ impl Market {
         // Calculate minimum acceptable price
         // Original: UZ=INT(XZ-(1)*(XZ/10)-(RND(1)*(XZ/10)))
         let market_value = player.market_value(game.current_league);
-        let min_price = market_value
-            - (market_value / 10)
-            - self.rng.gen_range(0..(market_value / 10));
+        let min_price =
+            market_value - (market_value / 10) - self.rng.gen_range(0..(market_value / 10));
 
         if offer < min_price {
             Ok(false) // Offer rejected

@@ -1,4 +1,7 @@
-use crate::parser::{BinOp, DimDeclaration, Expr, ForStatement, IfStatement, LetStatement, Parser, PrintItem, PrintStatement, Program, Statement, UnOp};
+use crate::parser::{
+    BinOp, DimDeclaration, Expr, ForStatement, IfStatement, LetStatement, Parser, PrintItem,
+    PrintStatement, Program, Statement, UnOp,
+};
 use crate::screen::Screen;
 use crate::value::Value;
 use rand::Rng;
@@ -123,7 +126,10 @@ impl Interpreter {
             None => return Ok(false), // Program ended
         };
 
-        let statements = self.program.lines.get(&current_line)
+        let statements = self
+            .program
+            .lines
+            .get(&current_line)
             .ok_or_else(|| format!("Line {} not found", current_line))?
             .clone();
 
@@ -265,12 +271,17 @@ impl Interpreter {
                 self.auto_dimension_array(&stmt.variable, indices.len())?;
             }
 
-            let dims = self.array_dimensions.get(&stmt.variable)
-                .ok_or_else(|| format!("Array {} not dimensioned", stmt.variable))?.clone();
+            let dims = self
+                .array_dimensions
+                .get(&stmt.variable)
+                .ok_or_else(|| format!("Array {} not dimensioned", stmt.variable))?
+                .clone();
 
             let flat_index = self.calculate_flat_index(&index_values, &dims)?;
 
-            let array = self.arrays.get_mut(&stmt.variable)
+            let array = self
+                .arrays
+                .get_mut(&stmt.variable)
                 .ok_or_else(|| format!("Array {} not dimensioned", stmt.variable))?;
 
             if flat_index >= array.len() {
@@ -309,12 +320,15 @@ impl Interpreter {
     }
 
     fn exec_gosub(&mut self, line: u32) -> Result<(), String> {
-        self.gosub_stack.push((self.current_line.unwrap(), self.statement_idx));
+        self.gosub_stack
+            .push((self.current_line.unwrap(), self.statement_idx));
         self.exec_goto(line)
     }
 
     fn exec_return(&mut self) -> Result<(), String> {
-        let (line, idx) = self.gosub_stack.pop()
+        let (line, idx) = self
+            .gosub_stack
+            .pop()
             .ok_or_else(|| "RETURN without GOSUB".to_string())?;
 
         self.current_line = Some(line);
@@ -350,7 +364,8 @@ impl Interpreter {
             1.0
         };
 
-        self.variables.insert(stmt.variable.clone(), Value::Number(start));
+        self.variables
+            .insert(stmt.variable.clone(), Value::Number(start));
 
         self.for_stack.push(ForLoop {
             variable: stmt.variable.clone(),
@@ -365,7 +380,9 @@ impl Interpreter {
     }
 
     fn exec_next(&mut self, _var: &Option<String>) -> Result<(), String> {
-        let for_loop = self.for_stack.last_mut()
+        let for_loop = self
+            .for_stack
+            .last_mut()
             .ok_or_else(|| "NEXT without FOR".to_string())?;
 
         // Check if this is an empty loop (NEXT immediately after FOR)
@@ -380,7 +397,9 @@ impl Interpreter {
         for_loop.last_iteration_time = Some(Instant::now());
 
         // Increment loop variable
-        let current_value = self.variables.get(&for_loop.variable)
+        let current_value = self
+            .variables
+            .get(&for_loop.variable)
             .ok_or_else(|| format!("Loop variable {} not found", for_loop.variable))?
             .as_number()?;
 
@@ -394,7 +413,8 @@ impl Interpreter {
         };
 
         if should_continue {
-            self.variables.insert(for_loop.variable.clone(), Value::Number(new_value));
+            self.variables
+                .insert(for_loop.variable.clone(), Value::Number(new_value));
             self.current_line = Some(for_loop.line_num);
             self.statement_idx = for_loop.statement_idx;
         } else {
@@ -421,7 +441,8 @@ impl Interpreter {
                 Value::Number(0.0)
             };
 
-            self.arrays.insert(decl.name.clone(), vec![default_value; total_size]);
+            self.arrays
+                .insert(decl.name.clone(), vec![default_value; total_size]);
             self.array_dimensions.insert(decl.name.clone(), dims);
         }
 
@@ -457,12 +478,17 @@ impl Interpreter {
                     self.auto_dimension_array(&target.variable, indices.len())?;
                 }
 
-                let dims = self.array_dimensions.get(&target.variable)
-                    .ok_or_else(|| format!("Array {} not dimensioned", target.variable))?.clone();
+                let dims = self
+                    .array_dimensions
+                    .get(&target.variable)
+                    .ok_or_else(|| format!("Array {} not dimensioned", target.variable))?
+                    .clone();
 
                 let flat_index = self.calculate_flat_index(&index_values, &dims)?;
 
-                let array = self.arrays.get_mut(&target.variable)
+                let array = self
+                    .arrays
+                    .get_mut(&target.variable)
                     .ok_or_else(|| format!("Array {} not dimensioned", target.variable))?;
 
                 if flat_index >= array.len() {
@@ -484,12 +510,12 @@ impl Interpreter {
         let value = self.eval_expr(val_expr)?.as_int()? as u8;
 
         match addr {
-            650 => {}, // Keyboard repeat - ignore
-            1690 => {}, // Unknown - ignore
-            53272 => {}, // Character set control - ignore
+            650 => {}   // Keyboard repeat - ignore
+            1690 => {}  // Unknown - ignore
+            53272 => {} // Character set control - ignore
             53280 => self.screen.set_border_color(value),
             53281 => self.screen.set_background_color(value),
-            _ => {}, // Ignore other POKE addresses
+            _ => {} // Ignore other POKE addresses
         }
 
         Ok(())
@@ -497,10 +523,7 @@ impl Interpreter {
 
     fn advance_to_next_line(&mut self) {
         if let Some(current) = self.current_line {
-            self.current_line = self.program.lines
-                .keys()
-                .find(|&&k| k > current)
-                .copied();
+            self.current_line = self.program.lines.keys().find(|&&k| k > current).copied();
             self.statement_idx = 0;
         }
     }
@@ -552,7 +575,8 @@ impl Interpreter {
             Expr::Number(n) => Ok(Value::Number(*n)),
             Expr::String(s) => Ok(Value::String(s.clone())),
             Expr::Variable(name) => {
-                self.variables.get(name)
+                self.variables
+                    .get(name)
                     .cloned()
                     .or_else(|| {
                         // Return default value if not found
@@ -576,15 +600,20 @@ impl Interpreter {
                     self.auto_dimension_array(name, indices.len())?;
                 }
 
-                let array = self.arrays.get(name)
+                let array = self
+                    .arrays
+                    .get(name)
                     .ok_or_else(|| format!("Array {} not dimensioned", name))?;
 
-                let dims = self.array_dimensions.get(name)
+                let dims = self
+                    .array_dimensions
+                    .get(name)
                     .ok_or_else(|| format!("Array {} not dimensioned", name))?;
 
                 let flat_index = self.calculate_flat_index(&index_values, dims)?;
 
-                array.get(flat_index)
+                array
+                    .get(flat_index)
                     .cloned()
                     .ok_or_else(|| "Array index out of bounds".to_string())
             }
@@ -618,10 +647,26 @@ impl Interpreter {
             BinOp::Pow => Ok(Value::Number(left.as_number()?.powf(right.as_number()?))),
             BinOp::Eq => Ok(Value::Number(if left == right { -1.0 } else { 0.0 })),
             BinOp::Ne => Ok(Value::Number(if left != right { -1.0 } else { 0.0 })),
-            BinOp::Lt => Ok(Value::Number(if left.as_number()? < right.as_number()? { -1.0 } else { 0.0 })),
-            BinOp::Le => Ok(Value::Number(if left.as_number()? <= right.as_number()? { -1.0 } else { 0.0 })),
-            BinOp::Gt => Ok(Value::Number(if left.as_number()? > right.as_number()? { -1.0 } else { 0.0 })),
-            BinOp::Ge => Ok(Value::Number(if left.as_number()? >= right.as_number()? { -1.0 } else { 0.0 })),
+            BinOp::Lt => Ok(Value::Number(if left.as_number()? < right.as_number()? {
+                -1.0
+            } else {
+                0.0
+            })),
+            BinOp::Le => Ok(Value::Number(if left.as_number()? <= right.as_number()? {
+                -1.0
+            } else {
+                0.0
+            })),
+            BinOp::Gt => Ok(Value::Number(if left.as_number()? > right.as_number()? {
+                -1.0
+            } else {
+                0.0
+            })),
+            BinOp::Ge => Ok(Value::Number(if left.as_number()? >= right.as_number()? {
+                -1.0
+            } else {
+                0.0
+            })),
             BinOp::And => {
                 let a = left.as_int()? as i64;
                 let b = right.as_int()? as i64;
@@ -648,7 +693,9 @@ impl Interpreter {
                 if args.len() != 1 {
                     return Err("INT requires 1 argument".to_string());
                 }
-                Ok(Value::Number(self.eval_expr(&args[0])?.as_number()?.floor()))
+                Ok(Value::Number(
+                    self.eval_expr(&args[0])?.as_number()?.floor(),
+                ))
             }
             "RND" => {
                 // C64 RND ignores argument, just returns random 0-1

@@ -90,38 +90,38 @@ pub fn build_petscii_table_uppercase() -> [PetASCII; 256] {
     }
 
     // PETSCII box drawing (0xA0-0xBF)
-    table[0xA0] = PetASCII::Unicode(' ');  // NBSP
-    table[0xA1] = PetASCII::Unicode('▐');  // Right half block
-    table[0xA2] = PetASCII::Unicode('░');  // Light shade
-    table[0xA3] = PetASCII::Unicode('─');  // Horizontal line
-    table[0xA4] = PetASCII::Unicode('▒');  // Medium shade
-    table[0xA5] = PetASCII::Unicode('▔');  // Upper horizontal bar
-    table[0xA6] = PetASCII::Unicode('▃');  // Lower 3/8 block
-    table[0xA7] = PetASCII::Unicode('▖');  // Quadrant lower left
-    table[0xA8] = PetASCII::Unicode('▝');  // Quadrant upper right
-    table[0xA9] = PetASCII::Unicode('┘');  // Box bottom-right
-    table[0xAA] = PetASCII::Unicode('▘');  // Quadrant upper left
-    table[0xAB] = PetASCII::Unicode('╱');  // Forward slash box
-    table[0xAC] = PetASCII::Unicode('▐');  // Right half block
-    table[0xAD] = PetASCII::Unicode('╯');  // Box bottom-right corner
-    table[0xAE] = PetASCII::Unicode('╰');  // Box bottom-left corner
-    table[0xAF] = PetASCII::Unicode('╭');  // Box top-left corner
-    table[0xB0] = PetASCII::Unicode('╲');  // Backslash box
-    table[0xB1] = PetASCII::Unicode('├');  // Box left T-junction
-    table[0xB2] = PetASCII::Unicode('┤');  // Box right T-junction
-    table[0xB3] = PetASCII::Unicode('╮');  // Box top-right corner
-    table[0xB4] = PetASCII::Unicode('┬');  // Box top T-junction
-    table[0xB5] = PetASCII::Unicode('┴');  // Box bottom T-junction
-    table[0xB6] = PetASCII::Unicode('┼');  // Box cross
-    table[0xB7] = PetASCII::Unicode('◆');  // Diamond
-    table[0xB8] = PetASCII::Unicode('◇');  // Hollow diamond
-    table[0xB9] = PetASCII::Unicode('●');  // Filled circle (ball)
-    table[0xBA] = PetASCII::Unicode('○');  // Hollow circle
-    table[0xBB] = PetASCII::Unicode('┼');  // Cross variant
-    table[0xBC] = PetASCII::Unicode('│');  // Vertical line
-    table[0xBD] = PetASCII::Unicode('│');  // Vertical line variant
-    table[0xBE] = PetASCII::Unicode('┼');  // Cross variant
-    table[0xBF] = PetASCII::Unicode(' ');  // Space
+    table[0xA0] = PetASCII::Unicode(' '); // NBSP
+    table[0xA1] = PetASCII::Unicode('▐'); // Right half block
+    table[0xA2] = PetASCII::Unicode('░'); // Light shade
+    table[0xA3] = PetASCII::Unicode('─'); // Horizontal line
+    table[0xA4] = PetASCII::Unicode('▒'); // Medium shade
+    table[0xA5] = PetASCII::Unicode('▔'); // Upper horizontal bar
+    table[0xA6] = PetASCII::Unicode('▃'); // Lower 3/8 block
+    table[0xA7] = PetASCII::Unicode('▖'); // Quadrant lower left
+    table[0xA8] = PetASCII::Unicode('▝'); // Quadrant upper right
+    table[0xA9] = PetASCII::Unicode('┘'); // Box bottom-right
+    table[0xAA] = PetASCII::Unicode('▘'); // Quadrant upper left
+    table[0xAB] = PetASCII::Unicode('╱'); // Forward slash box
+    table[0xAC] = PetASCII::Unicode('▐'); // Right half block
+    table[0xAD] = PetASCII::Unicode('╯'); // Box bottom-right corner
+    table[0xAE] = PetASCII::Unicode('╰'); // Box bottom-left corner
+    table[0xAF] = PetASCII::Unicode('╭'); // Box top-left corner
+    table[0xB0] = PetASCII::Unicode('╲'); // Backslash box
+    table[0xB1] = PetASCII::Unicode('├'); // Box left T-junction
+    table[0xB2] = PetASCII::Unicode('┤'); // Box right T-junction
+    table[0xB3] = PetASCII::Unicode('╮'); // Box top-right corner
+    table[0xB4] = PetASCII::Unicode('┬'); // Box top T-junction
+    table[0xB5] = PetASCII::Unicode('┴'); // Box bottom T-junction
+    table[0xB6] = PetASCII::Unicode('┼'); // Box cross
+    table[0xB7] = PetASCII::Unicode('◆'); // Diamond
+    table[0xB8] = PetASCII::Unicode('◇'); // Hollow diamond
+    table[0xB9] = PetASCII::Unicode('●'); // Filled circle (ball)
+    table[0xBA] = PetASCII::Unicode('○'); // Hollow circle
+    table[0xBB] = PetASCII::Unicode('┼'); // Cross variant
+    table[0xBC] = PetASCII::Unicode('│'); // Vertical line
+    table[0xBD] = PetASCII::Unicode('│'); // Vertical line variant
+    table[0xBE] = PetASCII::Unicode('┼'); // Cross variant
+    table[0xBF] = PetASCII::Unicode(' '); // Space
 
     // PETSCII shifted characters (0xC0-0xDF) - Graphics in uppercase mode!
     // These map to screen codes 0x00-0x1F which access the graphics CHARACTER ROM
@@ -160,15 +160,15 @@ pub fn build_petscii_table_uppercase() -> [PetASCII; 256] {
     table[0xDF] = PetASCII::Unicode('▘'); // quadrant upper left
 
     // PETSCII 0xE0-0xFF - various graphics
-    table[0xE0] = PetASCII::Unicode('░');  // Light shade
-    table[0xE1] = PetASCII::Unicode('▒');  // Medium shade
-    table[0xE2] = PetASCII::Unicode('▓');  // Dark shade
-    table[0xE3] = PetASCII::Unicode('◆');  // Diamond
-    table[0xE4] = PetASCII::Unicode('┼');  // Cross
-    table[0xE5] = PetASCII::Unicode('◄');  // Left arrow
-    table[0xE6] = PetASCII::Unicode('═');  // Double horizontal
-    table[0xE7] = PetASCII::Unicode('►');  // Right arrow
-    table[0xE8] = PetASCII::Unicode('?');  // Question mark
+    table[0xE0] = PetASCII::Unicode('░'); // Light shade
+    table[0xE1] = PetASCII::Unicode('▒'); // Medium shade
+    table[0xE2] = PetASCII::Unicode('▓'); // Dark shade
+    table[0xE3] = PetASCII::Unicode('◆'); // Diamond
+    table[0xE4] = PetASCII::Unicode('┼'); // Cross
+    table[0xE5] = PetASCII::Unicode('◄'); // Left arrow
+    table[0xE6] = PetASCII::Unicode('═'); // Double horizontal
+    table[0xE7] = PetASCII::Unicode('►'); // Right arrow
+    table[0xE8] = PetASCII::Unicode('?'); // Question mark
     for i in 0xE9..=0xFF {
         table[i] = PetASCII::Unicode('░'); // Various graphics -> light shade
     }
@@ -251,7 +251,7 @@ pub fn build_petscii_table_lowercase() -> [PetASCII; 256] {
     table[0xBF] = PetASCII::Unicode(' ');
 
     // PETSCII shifted characters (0xC0-0xDF) - UPPERCASE in lowercase mode
-    table[0xC0] = PetASCII::Unicode('─');  // Horizontal line
+    table[0xC0] = PetASCII::Unicode('─'); // Horizontal line
     for i in 0xC1..=0xDA {
         // Uppercase A-Z (these are the "shifted" versions in lowercase mode)
         table[i] = PetASCII::Unicode((i - 0xC0 + 0x41) as u8 as char);
@@ -301,7 +301,7 @@ pub fn petscii_to_ascii(byte: u8) -> (char, bool) {
         0x20..=0x5F => (byte as char, false),
 
         // PETSCII graphics (0x60-0x7F) - convert to approximations for parser
-        0x60 => ('-', false),  // Horizontal line
+        0x60 => ('-', false),                                 // Horizontal line
         0x61..=0x7A => ((byte - 0x60 + 0x41) as char, false), // Lowercase -> uppercase
         0x7B => ('+', false),
         0x7C => ('|', false),
@@ -326,11 +326,11 @@ pub fn petscii_to_ascii(byte: u8) -> (char, bool) {
         0xBF => (' ', false),
 
         // PETSCII shifted (0xC0-0xDF) - letters and graphics
-        0xC0 => ('-', false),  // Horizontal line
+        0xC0 => ('-', false),                                 // Horizontal line
         0xC1..=0xDA => ((byte - 0xC0 + 0x41) as char, false), // Shifted A-Z
-        0xDB => ('#', false),  // Full block
+        0xDB => ('#', false),                                 // Full block
         0xDC => ('_', false),
-        0xDD => ('|', false),  // Vertical line
+        0xDD => ('|', false), // Vertical line
         0xDE => (']', false),
         0xDF => ('_', false),
 
@@ -373,7 +373,7 @@ mod tests {
 
         // Test graphics in range 0x61-0x7A (uppercase mode)
         match table[0x61] {
-            PetASCII::Unicode('A') => (),  // Maps to uppercase
+            PetASCII::Unicode('A') => (), // Maps to uppercase
             _ => panic!("Expected uppercase A from 0x61"),
         }
     }
@@ -408,12 +408,12 @@ mod tests {
 
         // Verify 0x61 differs between modes
         match uppercase_table[0x61] {
-            PetASCII::Unicode('A') => (),  // Uppercase mode
+            PetASCII::Unicode('A') => (), // Uppercase mode
             _ => panic!("Expected A in uppercase mode"),
         }
 
         match lowercase_table[0x61] {
-            PetASCII::Unicode('a') => (),  // Lowercase mode
+            PetASCII::Unicode('a') => (), // Lowercase mode
             _ => panic!("Expected a in lowercase mode"),
         }
     }

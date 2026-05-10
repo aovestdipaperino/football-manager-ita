@@ -1,8 +1,8 @@
 use std::fs;
 
 fn main() {
-    let source = fs::read_to_string("footballmanager.bas")
-        .expect("Failed to read footballmanager.bas");
+    let source =
+        fs::read_to_string("footballmanager.bas").expect("Failed to read footballmanager.bas");
 
     for (idx, line) in source.lines().enumerate() {
         let line_num = idx + 1;

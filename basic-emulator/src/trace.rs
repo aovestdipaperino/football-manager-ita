@@ -2,10 +2,9 @@
 ///
 /// This module provides tracing capabilities to compare our interpreter's
 /// execution with a real C64 emulator.
-
 use crate::value::Value;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TraceEntry {
@@ -59,7 +58,7 @@ impl ExecutionTracer {
                 match value {
                     Value::Number(n) => format!("{}", n),
                     Value::String(s) => format!("\"{}\"", String::from_utf8_lossy(s)),
-                }
+                },
             );
         }
 
@@ -123,8 +122,10 @@ impl ExecutionTracer {
         };
 
         for (i, entry) in entries.iter().enumerate() {
-            println!("\n[{}] Line {} Statement {}: {}",
-                i, entry.line_number, entry.statement_index, entry.statement_type);
+            println!(
+                "\n[{}] Line {} Statement {}: {}",
+                i, entry.line_number, entry.statement_index, entry.statement_type
+            );
 
             if !entry.output.is_empty() {
                 println!("  Output: {:?}", entry.output);

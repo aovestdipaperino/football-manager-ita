@@ -1,8 +1,8 @@
 use std::fs;
 
 fn main() {
-    let source = fs::read_to_string("footballmanager.bas")
-        .expect("Failed to read footballmanager.bas");
+    let source =
+        fs::read_to_string("footballmanager.bas").expect("Failed to read footballmanager.bas");
 
     println!("Parsing footballmanager.bas...");
     match basic_emulator::parser::Parser::parse_program(&source) {

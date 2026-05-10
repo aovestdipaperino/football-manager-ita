@@ -10,7 +10,8 @@ fn main() {
         println!("Is keyword boundary: {}", is_keyword_boundary(c));
     }
 
-    let should_match = input.starts_with("PRINT") && input.chars().nth(5).map_or(true, is_keyword_boundary);
+    let should_match =
+        input.starts_with("PRINT") && input.chars().nth(5).map_or(true, is_keyword_boundary);
     println!("Should match PRINT keyword: {}", should_match);
 
     // Try parsing

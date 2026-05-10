@@ -1,6 +1,6 @@
-use rand::Rng;
 use crate::game_state::GameState;
 use crate::team::{Team, TeamStats};
+use rand::Rng;
 
 #[derive(Debug, Clone)]
 pub struct MatchResult {
@@ -41,15 +41,15 @@ impl MatchEngine {
         let (home_goals, away_goals) = if is_home {
             self.simulate_half(&player_stats, &opponent_stats, game.matches_played)
         } else {
-            let (away, home) = self.simulate_half(&player_stats, &opponent_stats, game.matches_played);
+            let (away, home) =
+                self.simulate_half(&player_stats, &opponent_stats, game.matches_played);
             (home, away)
         };
 
         // Calculate attendance income
         // Original: A2=(17-V(1))*INT(RND(1)*400)+500*(5-N)
         let position = game.player_position();
-        let attendance_income = (17 - position as i32)
-            * self.rng.gen_range(0..400)
+        let attendance_income = (17 - position as i32) * self.rng.gen_range(0..400)
             + 500 * (5 - game.current_league as i32);
 
         MatchResult {
@@ -86,7 +86,8 @@ impl MatchEngine {
             } else if opponent.points == 0 && game.matches_played > 0 {
                 self.rng.gen_range(10..=19)
             } else {
-                self.rng.gen_range(0..((opponent.points + game.matches_played as u16 * 3) as u8 + 10))
+                self.rng
+                    .gen_range(0..((opponent.points + game.matches_played as u16 * 3) as u8 + 10))
             };
 
             let stat = base_stat.min(20);
@@ -120,7 +121,12 @@ impl MatchEngine {
 
     /// Simulate a full match (both halves)
     /// Original: lines 3660-3730
-    fn simulate_half(&mut self, home_stats: &TeamStats, away_stats: &TeamStats, _matches_played: u8) -> (u16, u16) {
+    fn simulate_half(
+        &mut self,
+        home_stats: &TeamStats,
+        away_stats: &TeamStats,
+        _matches_played: u8,
+    ) -> (u16, u16) {
         let mut home_goals = 0u16;
         let mut away_goals = 0u16;
 
@@ -185,7 +191,10 @@ impl MatchEngine {
 
     /// Simulate matches for other teams in the league
     /// Original: lines 20640-20820
-    pub fn simulate_other_matches(&mut self, game: &mut GameState) -> Vec<(String, String, u16, u16)> {
+    pub fn simulate_other_matches(
+        &mut self,
+        game: &mut GameState,
+    ) -> Vec<(String, String, u16, u16)> {
         let mut results = Vec::new();
 
         // Collect team data (id, name, points) to avoid borrow issues
@@ -230,12 +239,7 @@ impl MatchEngine {
             game.teams[*home_id].record_result(home_goals, away_goals);
             game.teams[*away_id].record_result(away_goals, home_goals);
 
-            results.push((
-                home_name.clone(),
-                away_name.clone(),
-                home_goals,
-                away_goals,
-            ));
+            results.push((home_name.clone(), away_name.clone(), home_goals, away_goals));
         }
 
         results

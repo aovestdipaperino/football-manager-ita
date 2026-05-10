@@ -4,13 +4,13 @@ use std::collections::BTreeMap;
 pub enum Statement {
     Print(PrintStatement),
     Input(InputStatement),
-    Get(String),  // GET variable - reads single character
+    Get(String), // GET variable - reads single character
     Let(LetStatement),
     If(IfStatement),
     Goto(u32),
     Gosub(u32),
     Return,
-    Run,  // RUN - restart program from beginning
+    Run, // RUN - restart program from beginning
     For(ForStatement),
     Next(Option<String>),
     Dim(Vec<DimDeclaration>),
@@ -140,8 +140,8 @@ impl Parser {
         // First pass: normalize statement keywords
         // CRITICAL: Must skip string literals! Keywords in strings should NOT be normalized
         let statement_keywords = [
-            "RETURN", "RUN", "GOSUB", "INPUT", "GET", "PRINT", "GOTO", "THEN", "NEXT",
-            "DATA", "READ", "POKE", "FOR", "DIM", "END", "REM", "IF",
+            "RETURN", "RUN", "GOSUB", "INPUT", "GET", "PRINT", "GOTO", "THEN", "NEXT", "DATA",
+            "READ", "POKE", "FOR", "DIM", "END", "REM", "IF",
         ];
 
         let mut result = String::new();
@@ -230,8 +230,16 @@ impl Parser {
             if i + 3 <= result_chars.len() {
                 let slice: String = result_chars[i..i + 3].iter().collect();
                 if slice == "AND" {
-                    let prev_char = if i > 0 { Some(result_chars[i - 1]) } else { None };
-                    let next_char = if i + 3 < result_chars.len() { Some(result_chars[i + 3]) } else { None };
+                    let prev_char = if i > 0 {
+                        Some(result_chars[i - 1])
+                    } else {
+                        None
+                    };
+                    let next_char = if i + 3 < result_chars.len() {
+                        Some(result_chars[i + 3])
+                    } else {
+                        None
+                    };
 
                     // Consider $ and % as part of identifiers (BASIC variable suffixes)
                     let is_identifier_char = |c: char| c.is_alphanumeric() || c == '$' || c == '%';
@@ -242,9 +250,9 @@ impl Parser {
                     // 1. Both sides are boundaries (isolated keyword)
                     // 2. Both sides are non-boundaries (embedded like HZANDQZ)
                     // 3. Mixed, but prev is NOT an identifier char and next IS (like 8ANDXZ or "ANDA$)
-                    let should_normalize = (prev_not_id && next_not_id) ||
-                                          (!prev_not_id && !next_not_id) ||
-                                          (prev_not_id && !next_not_id);
+                    let should_normalize = (prev_not_id && next_not_id)
+                        || (!prev_not_id && !next_not_id)
+                        || (prev_not_id && !next_not_id);
 
                     if should_normalize {
                         second_pass.push_str(" AND ");
@@ -258,8 +266,16 @@ impl Parser {
             if !matched && i + 2 <= result_chars.len() {
                 let slice: String = result_chars[i..i + 2].iter().collect();
                 if slice == "OR" {
-                    let prev_char = if i > 0 { Some(result_chars[i - 1]) } else { None };
-                    let next_char = if i + 2 < result_chars.len() { Some(result_chars[i + 2]) } else { None };
+                    let prev_char = if i > 0 {
+                        Some(result_chars[i - 1])
+                    } else {
+                        None
+                    };
+                    let next_char = if i + 2 < result_chars.len() {
+                        Some(result_chars[i + 2])
+                    } else {
+                        None
+                    };
 
                     // Consider $ and % as part of identifiers (BASIC variable suffixes)
                     let is_identifier_char = |c: char| c.is_alphanumeric() || c == '$' || c == '%';
@@ -270,9 +286,9 @@ impl Parser {
                     // 1. Both sides are boundaries (isolated keyword)
                     // 2. Both sides are non-boundaries (embedded like HZORQZ)
                     // 3. Mixed, but prev is NOT an identifier char and next IS (like 8ORXZ or "ORA$)
-                    let should_normalize = (prev_not_id && next_not_id) ||
-                                          (!prev_not_id && !next_not_id) ||
-                                          (prev_not_id && !next_not_id);
+                    let should_normalize = (prev_not_id && next_not_id)
+                        || (!prev_not_id && !next_not_id)
+                        || (prev_not_id && !next_not_id);
 
                     if should_normalize {
                         second_pass.push_str(" OR ");
@@ -399,55 +415,86 @@ impl Parser {
         // Helper to check if a character is part of an identifier (not $ or other special chars)
         let is_keyword_boundary = |c: char| !c.is_ascii_alphabetic() && c != '_';
 
-        if remaining.starts_with("RETURN") && remaining.chars().nth(6).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("RETURN")
+            && remaining.chars().nth(6).map_or(true, is_keyword_boundary)
+        {
             self.consume_word("RETURN");
             return Ok(Statement::Return);
         }
-        if remaining.starts_with("RUN") && remaining.chars().nth(3).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("RUN")
+            && remaining.chars().nth(3).map_or(true, is_keyword_boundary)
+        {
             self.consume_word("RUN");
             return Ok(Statement::Run);
         }
-        if remaining.starts_with("PRINT") && remaining.chars().nth(5).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("PRINT")
+            && remaining.chars().nth(5).map_or(true, is_keyword_boundary)
+        {
             return self.parse_print();
         }
-        if remaining.starts_with("INPUT") && remaining.chars().nth(5).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("INPUT")
+            && remaining.chars().nth(5).map_or(true, is_keyword_boundary)
+        {
             return self.parse_input();
         }
-        if remaining.starts_with("GET") && remaining.chars().nth(3).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("GET")
+            && remaining.chars().nth(3).map_or(true, is_keyword_boundary)
+        {
             return self.parse_get();
         }
-        if remaining.starts_with("GOSUB") && remaining.chars().nth(5).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("GOSUB")
+            && remaining.chars().nth(5).map_or(true, is_keyword_boundary)
+        {
             return self.parse_gosub();
         }
-        if remaining.starts_with("GOTO") && remaining.chars().nth(4).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("GOTO")
+            && remaining.chars().nth(4).map_or(true, is_keyword_boundary)
+        {
             return self.parse_goto();
         }
-        if remaining.starts_with("FOR") && remaining.chars().nth(3).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("FOR")
+            && remaining.chars().nth(3).map_or(true, is_keyword_boundary)
+        {
             return self.parse_for();
         }
-        if remaining.starts_with("NEXT") && remaining.chars().nth(4).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("NEXT")
+            && remaining.chars().nth(4).map_or(true, is_keyword_boundary)
+        {
             return self.parse_next();
         }
-        if remaining.starts_with("DATA") && remaining.chars().nth(4).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("DATA")
+            && remaining.chars().nth(4).map_or(true, is_keyword_boundary)
+        {
             return self.parse_data();
         }
-        if remaining.starts_with("READ") && remaining.chars().nth(4).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("READ")
+            && remaining.chars().nth(4).map_or(true, is_keyword_boundary)
+        {
             return self.parse_read();
         }
-        if remaining.starts_with("POKE") && remaining.chars().nth(4).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("POKE")
+            && remaining.chars().nth(4).map_or(true, is_keyword_boundary)
+        {
             return self.parse_poke();
         }
-        if remaining.starts_with("DIM") && remaining.chars().nth(3).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("DIM")
+            && remaining.chars().nth(3).map_or(true, is_keyword_boundary)
+        {
             return self.parse_dim();
         }
-        if remaining.starts_with("END") && remaining.chars().nth(3).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("END")
+            && remaining.chars().nth(3).map_or(true, is_keyword_boundary)
+        {
             self.consume_word("END");
             return Ok(Statement::End);
         }
-        if remaining.starts_with("REM") && remaining.chars().nth(3).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("REM")
+            && remaining.chars().nth(3).map_or(true, is_keyword_boundary)
+        {
             return self.parse_rem();
         }
-        if remaining.starts_with("IF") && remaining.chars().nth(2).map_or(true, is_keyword_boundary) {
+        if remaining.starts_with("IF") && remaining.chars().nth(2).map_or(true, is_keyword_boundary)
+        {
             return self.parse_if();
         }
 
@@ -942,7 +989,11 @@ impl Parser {
         }
 
         // Number (including .5 format)
-        if self.peek().map(|c| c.is_ascii_digit() || c == '.').unwrap_or(false) {
+        if self
+            .peek()
+            .map(|c| c.is_ascii_digit() || c == '.')
+            .unwrap_or(false)
+        {
             return Ok(Expr::Number(self.parse_number()?));
         }
 
@@ -1034,10 +1085,10 @@ impl Parser {
 
             // Check for escaped byte marker \{XX}
             if c == '\\' && self.pos + 4 < self.input.len() {
-                let next_chars: String = self.input[self.pos..self.pos+5].chars().collect();
+                let next_chars: String = self.input[self.pos..self.pos + 5].chars().collect();
                 if next_chars.starts_with("\\{") && next_chars.ends_with("}") {
                     // Extract hex byte value
-                    let hex_str = &self.input[self.pos+2..self.pos+4];
+                    let hex_str = &self.input[self.pos + 2..self.pos + 4];
                     if let Ok(byte_val) = u8::from_str_radix(hex_str, 16) {
                         bytes.push(byte_val);
                         // Skip past the \{XX} sequence
@@ -1095,7 +1146,10 @@ impl Parser {
                     );
                 }
             } else {
-                panic!("Expected '{}', found end of input while consuming '{}'", expected_char, word);
+                panic!(
+                    "Expected '{}', found end of input while consuming '{}'",
+                    expected_char, word
+                );
             }
         }
     }

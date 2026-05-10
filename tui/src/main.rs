@@ -10,10 +10,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use ratatui::{
-    backend::CrosstermBackend,
-    Terminal,
-};
+use ratatui::{backend::CrosstermBackend, Terminal};
 use std::io;
 use std::time::Duration;
 
@@ -37,7 +34,13 @@ fn main() -> Result<(), io::Error> {
     let mut match_engine = MatchEngine::new();
 
     // Run app
-    let res = run_app(&mut terminal, &mut ui, &mut game, &mut market, &mut match_engine);
+    let res = run_app(
+        &mut terminal,
+        &mut ui,
+        &mut game,
+        &mut market,
+        &mut match_engine,
+    );
 
     // Restore terminal
     disable_raw_mode()?;
@@ -105,7 +108,8 @@ fn run_app<B: ratatui::backend::Backend>(
                                 KeyCode::Char('g') | KeyCode::Char('G') => {
                                     // Play match
                                     play_match(game_state, match_engine);
-                                    ui.message = Some("Match completed! Check standings.".to_string());
+                                    ui.message =
+                                        Some("Match completed! Check standings.".to_string());
                                 }
                                 KeyCode::Char('r') | KeyCode::Char('R') => {
                                     *game = None;

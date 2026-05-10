@@ -1,9 +1,5 @@
 fn main() {
-    let inputs = vec![
-        "FOR PZ=HZTOHZ+15",
-        "FOR I=1TO10",
-        "HZTOHZ",
-    ];
+    let inputs = vec!["FOR PZ=HZTOHZ+15", "FOR I=1TO10", "HZTOHZ"];
 
     for input in inputs {
         println!("\nInput: {}", input);

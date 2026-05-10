@@ -9,11 +9,11 @@ pub enum PlayerPosition {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PlayerStatus {
-    NotOwned,      // C(x) = 0
-    Available,     // C(x) = 1
-    Owned,         // C(x) = 2
-    Substitute,    // C(x) = 3
-    Playing,       // C(x) = 4
+    NotOwned,   // C(x) = 0
+    Available,  // C(x) = 1
+    Owned,      // C(x) = 2
+    Substitute, // C(x) = 3
+    Playing,    // C(x) = 4
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,8 +21,8 @@ pub struct Player {
     pub id: usize,
     pub name: String,
     pub position: PlayerPosition,
-    pub style: u8,      // A(x): 1-5, affects position-specific rating
-    pub power: u8,      // B(x): 1-20, player's overall strength
+    pub style: u8,            // A(x): 1-5, affects position-specific rating
+    pub power: u8,            // B(x): 1-20, player's overall strength
     pub status: PlayerStatus, // C(x): ownership/playing status
 }
 
@@ -87,14 +87,32 @@ impl Player {
 // Player names from the original game (lines 820-840)
 pub const PLAYER_NAMES: [&str; 24] = [
     // Defenders (D)
-    "BORDON", "TANCREDI", "NELA", "CABRINI",
-    "VIERCHOWOD", "JUNIOR", "PASSARELLA", "TRICELLA",
+    "BORDON",
+    "TANCREDI",
+    "NELA",
+    "CABRINI",
+    "VIERCHOWOD",
+    "JUNIOR",
+    "PASSARELLA",
+    "TRICELLA",
     // Midfielders (C)
-    "WILKINS", "ZICO", "SOUNESS", "BAGNI",
-    "MARADONA", "PLATINI", "DOSSENA", "BRADY",
+    "WILKINS",
+    "ZICO",
+    "SOUNESS",
+    "BAGNI",
+    "MARADONA",
+    "PLATINI",
+    "DOSSENA",
+    "BRADY",
     // Forwards (A)
-    "ALTOBELLI", "RUMENIGGE", "GIORDANO", "ROSSI",
-    "VIRDIS", "GALDERISI", "HATELEY", "SERENA",
+    "ALTOBELLI",
+    "RUMENIGGE",
+    "GIORDANO",
+    "ROSSI",
+    "VIRDIS",
+    "GALDERISI",
+    "HATELEY",
+    "SERENA",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

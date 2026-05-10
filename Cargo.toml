@@ -1,5 +1,5 @@
 [workspace]
-members = ["tui", "basic-emulator"]
+members = ["tui", "basic-emulator", "c64basic"]
 resolver = "2"
 
 [workspace.dependencies]

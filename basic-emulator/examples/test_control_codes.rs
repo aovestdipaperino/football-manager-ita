@@ -12,7 +12,7 @@ fn main() {
     let mut interp = basic_emulator::interpreter::Interpreter::new(screen.clone());
 
     match interp.load_program(program) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => {
             eprintln!("Parse error: {}", e);
             std::process::exit(1);

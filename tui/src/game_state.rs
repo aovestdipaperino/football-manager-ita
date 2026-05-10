@@ -1,20 +1,20 @@
-use serde::{Deserialize, Serialize};
 use crate::player::{Player, PlayerStatus, PLAYER_NAMES};
 use crate::team::{Team, TeamStats, SERIE_A_TEAMS, SERIE_B_TEAMS, SERIE_C1_TEAMS, SERIE_C2_TEAMS};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameState {
     pub players: Vec<Player>,
     pub teams: Vec<Team>,
-    pub player_team_id: usize,  // ID of the team the player manages (index 0 is player's team)
-    pub current_league: u8,     // 1=A, 2=B, 3=C1, 4=C2
-    pub money: i32,             // W: starting 150000
-    pub debt: i32,              // Y
-    pub weekly_interest: i32,   // Z: debt/20
-    pub morale: u8,             // K: 15 initially, 20 max
-    pub management_level: u8,   // R: 20 initially
-    pub seasons_played: u8,     // B1
-    pub matches_played: u8,     // I
+    pub player_team_id: usize, // ID of the team the player manages (index 0 is player's team)
+    pub current_league: u8,    // 1=A, 2=B, 3=C1, 4=C2
+    pub money: i32,            // W: starting 150000
+    pub debt: i32,             // Y
+    pub weekly_interest: i32,  // Z: debt/20
+    pub morale: u8,            // K: 15 initially, 20 max
+    pub management_level: u8,  // R: 20 initially
+    pub seasons_played: u8,    // B1
+    pub matches_played: u8,    // I
     pub match_results: Vec<String>, // C$(I-1) = result string
 }
 
@@ -25,10 +25,10 @@ impl GameState {
             teams: Vec::new(),
             player_team_id: 0,
             current_league: starting_league,
-            money: 150_000,  // W=150000
-            debt: 0,         // Y=0
-            weekly_interest: 0, // Z=0
-            morale: 15,      // K=15
+            money: 150_000,       // W=150000
+            debt: 0,              // Y=0
+            weekly_interest: 0,   // Z=0
+            morale: 15,           // K=15
             management_level: 20, // R=20
             seasons_played: 1,    // B1=1
             matches_played: 0,    // I=0
@@ -38,7 +38,8 @@ impl GameState {
         // Initialize all 24 players from original game
         for (id, name) in PLAYER_NAMES.iter().enumerate() {
             let position = Player::position_from_id(id);
-            game.players.push(Player::new(id, name.to_string(), position));
+            game.players
+                .push(Player::new(id, name.to_string(), position));
         }
 
         // Initialize all teams across 4 leagues (64 teams total)
@@ -52,7 +53,8 @@ impl GameState {
         let mut team_id = 0;
         for (league_level, teams) in all_teams.iter() {
             for team_name in teams.iter() {
-                game.teams.push(Team::new(team_id, team_name.to_string(), *league_level));
+                game.teams
+                    .push(Team::new(team_id, team_name.to_string(), *league_level));
                 team_id += 1;
             }
         }
@@ -103,7 +105,12 @@ impl GameState {
     pub fn owned_players(&self) -> Vec<&Player> {
         self.players
             .iter()
-            .filter(|p| matches!(p.status, PlayerStatus::Owned | PlayerStatus::Playing | PlayerStatus::Substitute))
+            .filter(|p| {
+                matches!(
+                    p.status,
+                    PlayerStatus::Owned | PlayerStatus::Playing | PlayerStatus::Substitute
+                )
+            })
             .collect()
     }
 
@@ -199,7 +206,8 @@ impl GameState {
     }
 
     pub fn get_league_standings(&self) -> Vec<(usize, &Team)> {
-        let mut league_teams: Vec<_> = self.teams
+        let mut league_teams: Vec<_> = self
+            .teams
             .iter()
             .enumerate()
             .filter(|(_, t)| t.league_level == self.current_league)
@@ -207,7 +215,8 @@ impl GameState {
 
         // Sort by points (descending), then goal difference (descending)
         league_teams.sort_by(|a, b| {
-            b.1.points.cmp(&a.1.points)
+            b.1.points
+                .cmp(&a.1.points)
                 .then_with(|| b.1.goal_difference().cmp(&a.1.goal_difference()))
         });
 

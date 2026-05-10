@@ -35,7 +35,11 @@ fn main() {
             let mut has_run = false;
             let mut unclosed_string_lines = Vec::new();
 
-            fn check_statements(stmts: &[basic_emulator::parser::Statement], has_get: &mut bool, has_run: &mut bool) {
+            fn check_statements(
+                stmts: &[basic_emulator::parser::Statement],
+                has_get: &mut bool,
+                has_run: &mut bool,
+            ) {
                 for stmt in stmts {
                     match stmt {
                         basic_emulator::parser::Statement::Get(_) => *has_get = true,

@@ -1,0 +1,12 @@
+[package]
+name = "c64basic"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+crossterm.workspace = true
+rand.workspace = true
+
+[[bin]]
+name = "c64basic"
+path = "src/main.rs"

@@ -1,3 +1,6 @@
+use crate::petscii::{
+    build_petscii_table_lowercase, build_petscii_table_uppercase, CharsetMode, PetASCII,
+};
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Style},
@@ -6,7 +9,6 @@ use ratatui::{
     Frame,
 };
 use std::sync::{Arc, Mutex};
-use crate::petscii::{build_petscii_table_uppercase, build_petscii_table_lowercase, PetASCII, CharsetMode};
 
 const SCREEN_WIDTH: usize = 40; // C64 screen width
 const SCREEN_HEIGHT: usize = 25; // C64 screen height
@@ -432,7 +434,10 @@ impl Screen {
 
                 // Push final span
                 if !current_text.is_empty() {
-                    spans.push(Span::styled(current_text, Style::default().fg(current_color)));
+                    spans.push(Span::styled(
+                        current_text,
+                        Style::default().fg(current_color),
+                    ));
                 }
 
                 Line::from(spans)

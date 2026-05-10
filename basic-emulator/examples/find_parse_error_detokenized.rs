@@ -27,7 +27,11 @@ fn main() {
                 // Line parsed successfully
             }
             Err(e) => {
-                eprintln!("✗ Parse error at line {} (file line {}):", line_idx + 1, line_idx + 1);
+                eprintln!(
+                    "✗ Parse error at line {} (file line {}):",
+                    line_idx + 1,
+                    line_idx + 1
+                );
                 eprintln!("  Error: {}", e);
                 eprintln!("  Line content: {}", line);
                 std::process::exit(1);

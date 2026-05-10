@@ -10,7 +10,7 @@ fn main() {
             println!("Program has {} lines\n", program.lines.len());
             println!("First 20 line numbers:");
             for (i, line_num) in program.lines.keys().take(20).enumerate() {
-                println!("  {}: Line {}", i+1, line_num);
+                println!("  {}: Line {}", i + 1, line_num);
             }
 
             println!("\nLine 10:");
