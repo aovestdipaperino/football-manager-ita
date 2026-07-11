@@ -8,6 +8,8 @@ mod petscii;
 mod screen;
 
 use std::io;
+use std::io::Read as _;
+use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 use crossterm::{
@@ -23,7 +25,7 @@ use screen::Screen;
 const C64_STMTS_PER_SEC: f64 = 600.0;
 
 fn main() {
-    let usage = "usage: c64basic <file.txt> [--speed <mult>|max] [--parse-only] [--headless <n>]";
+    let usage = "usage: c64basic <file.txt> [--speed <mult>|max] [--keyport <port>] [--parse-only] [--headless <n>]";
 
     // --speed 1 (default) approximates real C64 pacing so delay loops and
     // animations take authentic time; --speed max runs unthrottled.
@@ -31,6 +33,7 @@ fn main() {
     let mut path: Option<String> = None;
     let mut headless: Option<u32> = None;
     let mut parse_only = false;
+    let mut keyport: Option<u16> = None;
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
@@ -52,6 +55,13 @@ fn main() {
                 headless = args.next().and_then(|s| s.parse().ok());
                 if headless.is_none() {
                     eprintln!("--headless expects a step count");
+                    std::process::exit(2);
+                }
+            }
+            "--keyport" => {
+                keyport = args.next().and_then(|s| s.parse().ok());
+                if keyport.is_none() {
+                    eprintln!("--keyport expects a TCP port number");
                     std::process::exit(2);
                 }
             }
@@ -114,7 +124,9 @@ fn main() {
         }
     };
 
-    if let Err(e) = run(interp, stmts_per_sec) {
+    let key_rx = keyport.map(spawn_key_listener);
+
+    if let Err(e) = run(interp, stmts_per_sec, key_rx) {
         // Try to restore the terminal before printing.
         let _ = terminal::disable_raw_mode();
         let _ = execute!(io::stdout(), terminal::LeaveAlternateScreen);
@@ -123,7 +135,47 @@ fn main() {
     }
 }
 
-fn run(mut interp: Interp, stmts_per_sec: Option<f64>) -> Result<(), String> {
+/// Listen on 127.0.0.1:<port> and forward every byte received to the
+/// interpreter as a keypress. Bytes are interpreted as PETSCII, except that
+/// lowercase ASCII letters are uppercased (as the terminal path does) and
+/// LF is translated to Return. One client at a time; clients may reconnect.
+fn spawn_key_listener(port: u16) -> mpsc::Receiver<u8> {
+    let (tx, rx) = mpsc::channel();
+    let listener = std::net::TcpListener::bind(("127.0.0.1", port)).unwrap_or_else(|e| {
+        eprintln!("cannot bind key port {}: {}", port, e);
+        std::process::exit(1);
+    });
+    std::thread::spawn(move || {
+        for stream in listener.incoming() {
+            let Ok(mut stream) = stream else { continue };
+            let mut buf = [0u8; 256];
+            loop {
+                match stream.read(&mut buf) {
+                    Ok(0) | Err(_) => break,
+                    Ok(n) => {
+                        for &b in &buf[..n] {
+                            let b = match b {
+                                b'\n' => 0x0D,
+                                b'a'..=b'z' => b.to_ascii_uppercase(),
+                                _ => b,
+                            };
+                            if tx.send(b).is_err() {
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+    rx
+}
+
+fn run(
+    mut interp: Interp,
+    stmts_per_sec: Option<f64>,
+    key_rx: Option<mpsc::Receiver<u8>>,
+) -> Result<(), String> {
     let mut stdout = io::stdout();
     terminal::enable_raw_mode().map_err(|e| e.to_string())?;
     execute!(
@@ -133,7 +185,7 @@ fn run(mut interp: Interp, stmts_per_sec: Option<f64>) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
-    let result = run_loop(&mut interp, &mut stdout, stmts_per_sec);
+    let result = run_loop(&mut interp, &mut stdout, stmts_per_sec, key_rx);
 
     let _ = terminal::disable_raw_mode();
     let _ = execute!(
@@ -149,6 +201,7 @@ fn run_loop(
     interp: &mut Interp,
     stdout: &mut io::Stdout,
     stmts_per_sec: Option<f64>,
+    key_rx: Option<mpsc::Receiver<u8>>,
 ) -> Result<(), String> {
     interp.screen.mark_dirty();
     interp
@@ -178,6 +231,13 @@ fn run_loop(
                 }
                 Event::Resize(_, _) => interp.screen.mark_dirty(),
                 _ => {}
+            }
+        }
+
+        // Drain any remotely injected keypresses.
+        if let Some(rx) = &key_rx {
+            while let Ok(b) = rx.try_recv() {
+                interp.push_char(b);
             }
         }
 
