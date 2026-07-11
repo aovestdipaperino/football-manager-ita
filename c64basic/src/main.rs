@@ -18,9 +18,53 @@ use crossterm::{
 use interp::Interp;
 use screen::Screen;
 
+/// Approximate speed of C64 BASIC V2: an empty FOR/NEXT loop runs at
+/// roughly this many iterations (statements) per second on real hardware.
+const C64_STMTS_PER_SEC: f64 = 600.0;
+
 fn main() {
-    let path = std::env::args().nth(1).unwrap_or_else(|| {
-        eprintln!("usage: c64basic <file.txt>");
+    let usage = "usage: c64basic <file.txt> [--speed <mult>|max] [--parse-only] [--headless <n>]";
+
+    // --speed 1 (default) approximates real C64 pacing so delay loops and
+    // animations take authentic time; --speed max runs unthrottled.
+    let mut stmts_per_sec: Option<f64> = Some(C64_STMTS_PER_SEC);
+    let mut path: Option<String> = None;
+    let mut headless: Option<u32> = None;
+    let mut parse_only = false;
+    let mut args = std::env::args().skip(1);
+    while let Some(a) = args.next() {
+        match a.as_str() {
+            "--speed" => {
+                let v = args.next().unwrap_or_default();
+                if v.eq_ignore_ascii_case("max") {
+                    stmts_per_sec = None;
+                } else {
+                    match v.parse::<f64>() {
+                        Ok(m) if m > 0.0 => stmts_per_sec = Some(C64_STMTS_PER_SEC * m),
+                        _ => {
+                            eprintln!("--speed expects a positive multiplier or 'max'");
+                            std::process::exit(2);
+                        }
+                    }
+                }
+            }
+            "--headless" => {
+                headless = args.next().and_then(|s| s.parse().ok());
+                if headless.is_none() {
+                    eprintln!("--headless expects a step count");
+                    std::process::exit(2);
+                }
+            }
+            "--parse-only" => parse_only = true,
+            _ if path.is_none() => path = Some(a),
+            _ => {
+                eprintln!("{}", usage);
+                std::process::exit(2);
+            }
+        }
+    }
+    let path = path.unwrap_or_else(|| {
+        eprintln!("{}", usage);
         std::process::exit(2);
     });
 
@@ -37,16 +81,12 @@ fn main() {
         }
     };
 
-    if std::env::args().any(|a| a == "--parse-only") {
+    if parse_only {
         println!("OK: {} lines parsed.", prog.len());
         return;
     }
 
-    if let Some(n) = std::env::args()
-        .position(|a| a == "--headless")
-        .and_then(|i| std::env::args().nth(i + 1))
-        .and_then(|s| s.parse::<u32>().ok())
-    {
+    if let Some(n) = headless {
         let screen = Screen::new();
         let mut interp = Interp::new(prog, screen).unwrap();
         match interp.run_slice(n) {
@@ -74,7 +114,7 @@ fn main() {
         }
     };
 
-    if let Err(e) = run(interp) {
+    if let Err(e) = run(interp, stmts_per_sec) {
         // Try to restore the terminal before printing.
         let _ = terminal::disable_raw_mode();
         let _ = execute!(io::stdout(), terminal::LeaveAlternateScreen);
@@ -83,7 +123,7 @@ fn main() {
     }
 }
 
-fn run(mut interp: Interp) -> Result<(), String> {
+fn run(mut interp: Interp, stmts_per_sec: Option<f64>) -> Result<(), String> {
     let mut stdout = io::stdout();
     terminal::enable_raw_mode().map_err(|e| e.to_string())?;
     execute!(
@@ -93,7 +133,7 @@ fn run(mut interp: Interp) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
-    let result = run_loop(&mut interp, &mut stdout);
+    let result = run_loop(&mut interp, &mut stdout, stmts_per_sec);
 
     let _ = terminal::disable_raw_mode();
     let _ = execute!(
@@ -105,7 +145,11 @@ fn run(mut interp: Interp) -> Result<(), String> {
     result
 }
 
-fn run_loop(interp: &mut Interp, stdout: &mut io::Stdout) -> Result<(), String> {
+fn run_loop(
+    interp: &mut Interp,
+    stdout: &mut io::Stdout,
+    stmts_per_sec: Option<f64>,
+) -> Result<(), String> {
     interp.screen.mark_dirty();
     interp
         .screen
@@ -113,6 +157,10 @@ fn run_loop(interp: &mut Interp, stdout: &mut io::Stdout) -> Result<(), String> 
         .map_err(|e| e.to_string())?;
 
     let mut last_render = Instant::now();
+    // Token bucket for pacing: earns statements at stmts_per_sec, capped at
+    // one second of backlog so a stall doesn't cause a burst.
+    let mut last_exec = Instant::now();
+    let mut earned: f64 = 0.0;
     loop {
         // Poll keyboard with a very short timeout so spin-wait GETs don't
         // peg the CPU.
@@ -134,10 +182,20 @@ fn run_loop(interp: &mut Interp, stdout: &mut io::Stdout) -> Result<(), String> 
         }
 
         // Execute a slice of the program.
-        let budget = if matches!(interp.input_mode, interp::InputMode::Normal) {
-            5000
-        } else {
+        let now = Instant::now();
+        let budget = if !matches!(interp.input_mode, interp::InputMode::Normal) {
+            earned = 0.0;
+            last_exec = now;
             0
+        } else if let Some(rate) = stmts_per_sec {
+            earned = (earned + now.duration_since(last_exec).as_secs_f64() * rate).min(rate);
+            last_exec = now;
+            let b = earned as u32;
+            earned -= b as f64;
+            b
+        } else {
+            last_exec = now;
+            5000
         };
         if budget > 0 {
             let halted = interp.run_slice(budget).map_err(|e| e.to_string())?;
