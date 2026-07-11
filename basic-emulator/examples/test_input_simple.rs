@@ -35,7 +35,10 @@ fn main() {
 
             // Simulate providing input
             println!("\nProviding input: 'ENZO'");
-            interpreter.provide_input("ENZO");
+            for c in "ENZO".chars() {
+                interpreter.handle_input_char(c);
+            }
+            interpreter.handle_input_enter();
             println!("Continuing...\n");
         }
 
