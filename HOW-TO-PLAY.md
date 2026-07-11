@@ -3,8 +3,7 @@
 ## Quick Start
 
 ```bash
-cd /Users/enzo/Code/football-manager-ita/basic-emulator
-cargo run --release -- ../footballmanager.bas
+cargo run --release -p c64basic -- footballmanager.txt
 ```
 
 Press ESC to exit at any time.

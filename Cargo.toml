@@ -1,10 +1,7 @@
 [workspace]
-members = ["tui", "basic-emulator", "c64basic"]
+members = ["c64basic"]
 resolver = "2"
 
 [workspace.dependencies]
-ratatui = "0.28"
 crossterm = "0.28"
 rand = "0.8"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
