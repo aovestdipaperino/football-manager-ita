@@ -75,13 +75,27 @@ The cap at one second of backlog matters: without it, any stall (a window resize
 
 ## Let the original testify
 
-How do you know a port is faithful? You ask the original. VICE, the venerable Commodore emulator, now exists in a build with an embedded MCP server, which means an AI agent (or any HTTP client) can load the original PRG, press keys, read memory, and take screenshots of the genuine article. Every screen in the Rust interpreter was compared against a screenshot of the same moment in VICE. The comparison image at the top of this post is exactly that workflow, promoted from test artifact to illustration.
+How do you know a port is faithful? You ask the original. VICE, the venerable Commodore emulator, now exists in a build with an embedded MCP server, which means an AI agent (or any HTTP client) can load the original PRG, press keys, read memory, and take screenshots of the genuine article. The comparison image at the top of this post came from exactly that workflow.
 
-The same idea, applied to the Rust side, produced a small feature with outsized returns: a `--keyport` flag that opens a localhost TCP socket and injects received bytes as keypresses. Suddenly the whole game is scriptable:
+Screenshots are for humans, though. The durable version reads screen memory. On the C64 the visible screen lives as 1000 bytes at $0400, one screen code per cell, so a fixture is just a hex dump of that region captured from VICE at a chosen moment. The interpreter stores its own screen the same way, in PETSCII, and a golden test translates both sides to Unicode through the same glyph table before comparing all 25 rows:
+
+```rust
+assert_screens_match(
+    &interp_rows(&i),                 // headless run of footballmanager.txt
+    &fixture_text("team-selection.hex"), // VICE $0400, hand-captured once
+    "team selection screen",
+);
+```
+
+The team-selection screen and the main menu matched VICE byte for byte on the first run, which means the character-ROM work is now pinned by tests instead of by my memory of what looked right.
+
+Reaching deeper screens needs one more thing: determinism. The interpreter seeded its RNG from the OS, so anything past the menus was different every run and impossible to assert against. A `--seed` flag and a seedable generator fix that. Now a scripted playthrough is reproducible, which is what lets a test play an entire fifteen-match season and check that the game reaches the promotion screen rather than hanging or crashing. That season test is also how the bug fixes earn their keep: the original's goal-animation counter never resets, so a faithful run of the unpatched listing would loop forever on the second goal, and the test would sit there until the step budget ran out.
+
+Driving all of this is a second small feature with outsized returns: a `--keyport` flag that opens a localhost TCP socket and injects received bytes as keypresses. Suddenly the whole game is scriptable from the shell:
 
 ```bash
 c64basic --speed max --keyport 6464 footballmanager.txt &
-printf '15\n' | nc 127.0.0.1 6464   # choose team 15
+printf '15\r' | nc 127.0.0.1 6464   # choose team 15
 printf 'G'    | nc 127.0.0.1 6464   # play the match
 ```
 
@@ -127,11 +141,17 @@ Run a 1985 listing under a magnifying glass and it confesses. Static analysis pl
 
 None of this is mockery. It is what shipping looked like when your debugger was a television set. But it sharpens the porting question: the faithful interpreter reproduces the bugs, the fixed edition (`football-manager-ita-fixed.bas`) repairs them, and both are legitimate ports of different things, one of the artifact and one of the intent.
 
+## Back to the metal
+
+The fixed and international editions are just text files the Rust interpreter reads. Turning them into something a real C64 can boot means tokenizing them into a PRG, which VICE's `petcat` tool does. The first attempt produced `?SYNTAX ERROR IN 1` the instant the machine tried to run it, on a line that reads simply `GOTO 6`.
+
+The cause is a convention collision. In petcat's text format, unshifted letters are written lowercase; an uppercase letter means a shifted PETSCII character. The editions were written in tidy all-caps, so `petcat` dutifully tokenized `GOTO` as six shifted graphics characters rather than the GOTO keyword. The fix is counterintuitive: lowercase the entire source before tokenizing. On the C64's default uppercase/graphics character set, those lowercase PETSCII codes render as capital letters anyway, so the game still looks all-caps on screen. Lowercase to the tool, uppercase to the eye. With that, both editions boot on the genuine machine and land on their team-selection screens, closing the loop from original listing to modern interpreter and back to a bootable binary.
+
 ## What the pitch taught about preservation
 
 The Rust rewrite took an afternoon. The interpreter that renders the original listing took character ROM archaeology, a deliberate slowness budget, and an emulator acting as an expert witness. That asymmetry is the lesson. Game logic is portable almost by accident; it is arithmetic, and arithmetic doesn't age. What ages is everything around it: the character set, the timing assumptions, the 40-column screen, the habit of using the machine's quirks as free features. Porting the logic gives you a new game with an old rulebook. Porting the artifact means treating the original binary, ROM, and timing as specifications, and those specifications are checkable, byte by byte, against a running original.
 
-If you try this yourself, start with the screen buffer in the native encoding and translate at the last possible moment, get the real character ROM before writing a single glyph mapping, and give your interpreter a speed limit before you conclude that animations are missing. The original is not just the thing you are porting. It is the best test oracle you will ever have.
+If you try this yourself, start with the screen buffer in the native encoding and translate at the last possible moment, get the real character ROM before writing a single glyph mapping, and give your interpreter a speed limit before you conclude that animations are missing. Make the run deterministic early, with a seed, so you can capture a screen once from the emulator and assert against it forever after. The original is not just the thing you are porting. It is the best test oracle you will ever have.
 
 [Rust](https://medium.com/tag/rust), [Retro Gaming](https://medium.com/tag/retro-gaming), [Emulation](https://medium.com/tag/emulation), [Commodore 64](https://medium.com/tag/commodore-64), [Programming](https://medium.com/tag/programming)
 
