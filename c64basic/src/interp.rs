@@ -4,7 +4,8 @@
 
 use crate::lang::*;
 use crate::screen::{Screen, COLS, ROWS};
-use rand::Rng;
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
@@ -166,11 +167,21 @@ pub struct Interp {
     pub halted: bool,
     pub screen: Screen,
     pub input_mode: InputMode,
-    rng: rand::rngs::ThreadRng,
+    rng: StdRng,
 }
 
 impl Interp {
+    /// Build an interpreter with an OS-seeded RNG.
     pub fn new(prog: Program, screen: Screen) -> Result<Self, String> {
+        Self::with_rng(prog, screen, StdRng::from_entropy())
+    }
+
+    /// Build an interpreter whose RND sequence is reproducible from `seed`.
+    pub fn new_seeded(prog: Program, screen: Screen, seed: u64) -> Result<Self, String> {
+        Self::with_rng(prog, screen, StdRng::seed_from_u64(seed))
+    }
+
+    fn with_rng(prog: Program, screen: Screen, rng: StdRng) -> Result<Self, String> {
         let mut data = Vec::new();
         let mut data_line_starts = Vec::new();
         for (&ln, stmts) in &prog {
@@ -203,7 +214,7 @@ impl Interp {
             halted: false,
             screen,
             input_mode: InputMode::Normal,
-            rng: rand::thread_rng(),
+            rng,
         })
     }
 

@@ -22,7 +22,7 @@ use screen::Screen;
 const C64_STMTS_PER_SEC: f64 = 600.0;
 
 fn main() {
-    let usage = "usage: c64basic <file.txt> [--speed <mult>|max] [--keyport <port>] [--parse-only] [--headless <n>]";
+    let usage = "usage: c64basic <file.txt> [--speed <mult>|max] [--keyport <port>] [--seed <n>] [--parse-only] [--headless <n>]";
 
     // --speed 1 (default) approximates real C64 pacing so delay loops and
     // animations take authentic time; --speed max runs unthrottled.
@@ -31,6 +31,7 @@ fn main() {
     let mut headless: Option<u32> = None;
     let mut parse_only = false;
     let mut keyport: Option<u16> = None;
+    let mut seed: Option<u64> = None;
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
@@ -59,6 +60,13 @@ fn main() {
                 keyport = args.next().and_then(|s| s.parse().ok());
                 if keyport.is_none() {
                     eprintln!("--keyport expects a TCP port number");
+                    std::process::exit(2);
+                }
+            }
+            "--seed" => {
+                seed = args.next().and_then(|s| s.parse().ok());
+                if seed.is_none() {
+                    eprintln!("--seed expects an unsigned integer");
                     std::process::exit(2);
                 }
             }
@@ -93,9 +101,13 @@ fn main() {
         return;
     }
 
+    let make_interp = |prog| match seed {
+        Some(s) => Interp::new_seeded(prog, Screen::new(), s),
+        None => Interp::new(prog, Screen::new()),
+    };
+
     if let Some(n) = headless {
-        let screen = Screen::new();
-        let mut interp = Interp::new(prog, screen).unwrap();
+        let mut interp = make_interp(prog).unwrap();
         match interp.run_slice(n) {
             Ok(halted) => println!("=== screen after {} steps (halted={}) ===", n, halted),
             Err(e) => println!("=== runtime error: {} ===", e),
@@ -112,8 +124,7 @@ fn main() {
         return;
     }
 
-    let screen = Screen::new();
-    let interp = match Interp::new(prog, screen) {
+    let interp = match make_interp(prog) {
         Ok(i) => i,
         Err(e) => {
             eprintln!("{}", e);

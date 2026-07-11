@@ -111,6 +111,28 @@ fn team_selection_screen_matches_vice() {
 }
 
 #[test]
+fn bank_screen_matches_vice() {
+    let mut i = load_game();
+    for _ in 0..100 {
+        i.run_slice(100_000).unwrap();
+        if !matches!(i.input_mode, InputMode::Normal) {
+            break;
+        }
+    }
+    for &b in b"8\r" {
+        i.push_char(b);
+    }
+    i.run_slice(200_000).unwrap(); // main menu GET loop
+    i.push_char(b'2'); // bank / loan
+    i.run_slice(200_000).unwrap(); // lands on the amount INPUT
+    assert_screens_match(
+        &interp_rows(&i),
+        &fixture_text("bank-screen.hex"),
+        "bank screen",
+    );
+}
+
+#[test]
 fn main_menu_screen_matches_vice() {
     let mut i = load_game();
     for _ in 0..100 {
