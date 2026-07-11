@@ -2,93 +2,83 @@
 
 # Football Manager C-64
 
-A complete Italian football (soccer) management simulation game written in Commodore 64 BASIC by Daniele Piccoli.
+A football (soccer) management game written for the Commodore 64 in BASIC by Daniele Piccoli in the 1980s, preserved here and made runnable on modern machines.
 
-## About
+Rather than rewriting the game, this project ships **`c64basic`**, a small Commodore 64 BASIC V2 interpreter in Rust that runs the original listing unmodified and renders the C64's 40x25 PETSCII screen into a terminal with Unicode and ANSI colors. The original binary, ROM, and timing are treated as the specification; the interpreter is checked against the real machine in VICE, byte for byte.
 
-This is a classic football management game for the Commodore 64 that allows players to manage an Italian football team through multiple seasons across different Italian league divisions (Serie A, B, C1, C2). The game features team management, player trading, financial systems, match simulations, and full season progression.
+![C64 splash in VICE (left) and the Rust interpreter (right)](splash-comparison.png)
 
-## Project Files
+## Quick start
 
-### `footballmanager.bas`
-The main game source code written in Commodore 64 BASIC. This file contains:
-- **Initialization and Setup** (Lines 10-810): Screen setup, variable initialization, team/player data
-- **Main Menu System** (Lines 820-1000): Primary navigation and game options
-- **Player Trading/Market** (Lines 1070-1460): Buy/sell players, transfer system
-- **Banking/Financial System** (Lines 1470-1620): Team budget management, loans
-- **League Tables/Statistics** (Lines 1630-1870): Rankings, standings, team statistics
-- **Team Status Display** (Lines 1880-2900): View your squad, player stats
-- **Match Simulation Engine** (Lines 3000-4280): Core gameplay - simulates football matches
-- **Season Management** (Lines 4060-4300): Progress through seasons, promotions/relegations
+```bash
+# Play the original Italian game at authentic C64 speed
+cargo run --release -p c64basic -- footballmanager.txt
 
-This file can be loaded into a Commodore 64 emulator (like VICE) or transferred to real C64 hardware.
-
-### `footballmanager.prg`
-The compiled/tokenized program file ready to run on Commodore 64 hardware or emulators. This is the binary executable version of `footballmanager.bas` that can be directly loaded and run with:
-```
-LOAD "footballmanager.prg",8,1
-RUN
+# Full native speed, or a multiple of C64 speed
+cargo run --release -p c64basic -- --speed max footballmanager.txt
+cargo run --release -p c64basic -- --speed 4  footballmanager.txt
 ```
 
-### `footballmanager_documented.txt`
-Comprehensive documentation and analysis of the game's code structure. This file includes:
-- Complete program structure overview
-- Variable definitions (string arrays, numeric arrays, global variables)
-- Detailed explanation of game mechanics
-- Code flow and logic documentation
-- Line-by-line analysis of key routines
+Press keys to play; `Ctrl-C` quits.
 
-This is an invaluable reference for understanding how the game works internally, useful for:
-- Code analysis and study
-- Porting to other platforms
-- Creating enhanced versions
-- Learning Commodore 64 BASIC programming techniques
+### Command-line flags
 
-## Game Features
+| Flag | Effect |
+|------|--------|
+| `--speed <mult>` \| `max` | Scale execution speed. Default paces to ~600 BASIC statements/sec so delay loops and animations run at real C64 speed; `max` is unthrottled. |
+| `--keyport <port>` | Open a localhost TCP socket; bytes received are injected as keypresses. For scripted/automated play. |
+| `--seed <n>` | Seed the RNG so `RND` is reproducible (deterministic runs and tests). |
+| `--headless <n>` | Run `n` statements with no UI and dump the final screen. |
+| `--parse-only` | Parse the listing and report line count without running. |
 
-- Manage teams across 4 Italian divisions (Serie A, B, C1, C2)
-- 64 teams total across all divisions
-- 24 famous players available for trading
-- Player attributes: style ratings (1-5), power/strength (1-20)
-- Financial management system with banking options
-- Match simulation with detailed statistics
-- Season progression with promotion/relegation
-- Team morale system
-- Injury management
-- League tables and standings
+Scripted play example:
 
-## How to Run
+```bash
+cargo run --release -p c64basic -- --speed max --keyport 6464 footballmanager.txt &
+printf '8\r' | nc 127.0.0.1 6464   # choose team 8
+printf 'G'   | nc 127.0.0.1 6464   # play the match
+```
 
-### Using an Emulator (Recommended)
-1. Download a Commodore 64 emulator like [VICE](https://vice-emu.sourceforge.io/)
-2. Load the `footballmanager.prg` file in the emulator
-3. Type `RUN` and press Enter
+## Game variants
 
-### On Real Hardware
-1. Transfer the `.prg` file to a C64-compatible storage device
-2. Load and run following standard C64 procedures
+| File | Description |
+|------|-------------|
+| `footballmanager.txt` | Original Italian game in petcat format (the interpreter's input). Kept intact, bugs and all. |
+| `footballmanager.bas` / `.prg` | Original listing / tokenized C64 binary. |
+| `football-manager-ita-fixed.bas` / `.prg` | The Italian game with fixes for bugs found in the original listing. |
+| `football-manager-intl.bas` / `.prg` | International edition: a European superleague of 64 clubs in four divisions (A–D, alphabetized), English text, currency scaled to modern values, players from the last decade, and 3 points for a win. Includes the bug fixes. |
 
-## Technical Details
+The `.prg` files are `petcat`-tokenized and run on real C64 hardware or in VICE. Original scoring is 2 points per win (historically accurate); the international edition uses 3.
 
-- **Platform**: Commodore 64
-- **Language**: BASIC
-- **Author**: Daniele Piccoli
-- **Display**: Character-based graphics with PETSCII borders
-- **Input**: Keyboard-based menu navigation
+## How the match is simulated
 
-## Development
+The engine is a few dozen lines of arithmetic driven by `RND`, with no ball physics. Your team is five numbers: energy (average player power, which fatigues and recovers weekly), morale, and the summed style ratings of your defenders, midfielders, and forwards. These fold into a defense rating (`defense + midfield/2 + energy/2 + morale/2`) and an attack rating (`attack + defense_rating/2 + defense/2 + midfield/2`). The AI opponent has no roster; its stats are generated on match day from its league points. A goal is scored when a random draw from the attacker's attack rating beats a random draw from the defender's defense rating (`RND(attack) - RND(defense) > 0`), and the number of chances per half scales with how attack-heavy both sides are. After the match, morale, gate receipts, fatigue, and injuries feed the next week.
 
-The game uses sophisticated techniques for a BASIC program including:
-- Dynamic memory management with POKE commands
-- Randomized match simulation algorithms
-- Data persistence across game sessions
-- Complex array structures for team/player management
-- Menu-driven interface with custom graphics
+`CONVERSION_NOTES.md` and `footballmanager_documented.txt` document the formulas and variable mappings; `POSSIBLE-BUGS.md` catalogs the defects found in the original listing.
 
-## License
+## The interpreter
 
-This is a historical Commodore 64 program preserved for educational and archival purposes.
+`c64basic` is a workspace crate with a small, boring pipeline: a lexer and parser for petcat-format BASIC, a tree-walking interpreter that pokes PETSCII bytes into a 40x25 screen buffer (mirroring C64 screen memory), and a renderer that translates the buffer to Unicode and color only at draw time.
 
----
+The PETSCII-to-Unicode glyph tables were verified against the actual C64 character generator ROM (`chargen-901225-01.bin`, shipped with VICE) rather than online charts. When changing a mapping, check the 8x8 bitmap in the ROM first.
 
-*For detailed code analysis and implementation details, refer to `footballmanager_documented.txt`*
+## Tests
+
+```bash
+cargo test
+```
+
+The suite includes keyboard/INPUT delivery tests, determinism tests, a full-season playthrough of the international edition (screen-driven, exercising promotion and season-end), and **golden-screen tests** that run the original listing headlessly and compare the 40x25 screen against fixtures captured from VICE's screen memory. To regenerate a fixture, drive `footballmanager.prg` in VICE to the wanted screen and dump 1000 bytes at `$0400`.
+
+## Reference documentation
+
+- `CONVERSION_NOTES.md` — BASIC variable and algorithm notes
+- `footballmanager_documented.txt` — annotated original listing
+- `POSSIBLE-BUGS.md` — defects found in the original code
+- `NOTES.md` — PETSCII / graphics research notes
+- `HOW-TO-PLAY.md` — gameplay guide
+- `porting-c64-games-to-rust.md` — a write-up of the porting work
+
+## Credits
+
+Original game by **Daniele Piccoli** (1980s). Preservation, interpreter, and editions in this repository build on that work, which is kept for educational and archival purposes.
