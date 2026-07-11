@@ -2,10 +2,7 @@
 //! interpreter, and drive a crossterm-based event loop that alternates
 //! between interpreter slices and screen redraws/keyboard polls.
 
-mod interp;
-mod lang;
-mod petscii;
-mod screen;
+use c64basic::{interp, lang, petscii, screen};
 
 use std::io;
 use std::io::Read as _;

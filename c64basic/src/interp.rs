@@ -468,6 +468,18 @@ impl Interp {
                     targets: targets.clone(),
                     buffer: Vec::new(),
                 };
+                // Keys typed before INPUT armed sit in the GET queue; feed
+                // them to the line editor like the C64 keyboard buffer would.
+                let queued = std::mem::take(&mut self.pending_chars);
+                for b in queued {
+                    if matches!(self.input_mode, InputMode::Normal) {
+                        // A queued RETURN already completed this INPUT; keep
+                        // the remainder for subsequent GET/INPUT statements.
+                        self.pending_chars.push(b);
+                    } else {
+                        self.push_char(b);
+                    }
+                }
                 Ok(())
             }
             Stmt::On {

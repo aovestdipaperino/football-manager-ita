@@ -41,6 +41,12 @@ pub struct Screen {
     dirty: bool,
 }
 
+impl Default for Screen {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Screen {
     pub fn new() -> Self {
         Self {
@@ -54,6 +60,19 @@ impl Screen {
             charset: Charset::UpperGraphics,
             dirty: true,
         }
+    }
+
+    /// Render the whole screen as 25 lines of Unicode text (no colors).
+    /// Used by the headless dump and by golden-screen tests.
+    pub fn to_text(&self) -> String {
+        let mut out = String::with_capacity((COLS + 1) * ROWS);
+        for row in &self.cells {
+            for c in row {
+                out.push(crate::petscii::glyph(c.byte, self.charset));
+            }
+            out.push('\n');
+        }
+        out
     }
 
     pub fn clear(&mut self) {

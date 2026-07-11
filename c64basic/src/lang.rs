@@ -195,6 +195,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Next token. Returns Token::Eol at end of input.
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Result<Token, String> {
         if self.after_rem {
             self.pos = self.src.len();
