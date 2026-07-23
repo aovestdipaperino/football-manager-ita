@@ -2,6 +2,11 @@
 
 # Football Manager C-64
 
+<p align="center">
+  <a href="https://ai.enzolombardi.net/"><img src="https://img.shields.io/badge/built%20with-AI-D97757?style=flat-square&labelColor=101010&logo=anthropic&logoColor=white" alt="Built with AI — part of Enzo Lombardi's AI portfolio"></a>
+</p>
+
+
 A football (soccer) management game written for the Commodore 64 in BASIC by Daniele Piccoli in the 1980s, preserved here and made runnable on modern machines.
 
 Rather than rewriting the game, this project ships **`c64basic`**, a small Commodore 64 BASIC V2 interpreter in Rust that runs the original listing unmodified and renders the C64's 40x25 PETSCII screen into a terminal with Unicode and ANSI colors. The original binary, ROM, and timing are treated as the specification; the interpreter is checked against the real machine in VICE, byte for byte.
