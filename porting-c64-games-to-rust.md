@@ -1,6 +1,17 @@
-# Porting C64 Games to Rust
+---
+postId: 811deccfdddd
+topics:
+  - Rust
+  - Retro Computing
+  - Game Development
+  - Emulation
+  - Commodore 64
+---
 
-In 1985 Daniele Piccoli wrote a football management game in Commodore 64 BASIC and mailed it, presumably on cassette, into the small universe of Italian home computing. Forty years later the game still runs, but the machine it was written for exists mostly in emulators and in the memories of people who once waited through its loading screen. The interesting question is not whether you can rewrite a game like this in Rust. Of course you can; it's a few hundred lines of arithmetic and PRINT statements. The interesting question is what "porting" should mean when the source material is a piece of history.
+# Porting C64 Games to Rust
+### a subtitle
+
+In 1985 Daniele Piccoli wrote a football management game in Commodore 64 BASIC and mailed it, presumably on cassette, into the small universe of Italian home computing. Forty years later the game still runs, but the machine it was written for exists mostly in emulators and in the memories of people who once waited through its loading screen. This particular game was never memorable for its looks; the graphics are character-cell boxes and the audio simply does not exist. What made it stick, for me, was that a teenager could LIST it and peek into code that was genuinely complex for its time, a whole league simulation laid bare in a few hundred numbered lines. That is the real reason this game, of all games, seemed worth preserving. The interesting question is not whether you can rewrite a game like this in Rust. Of course you can; it's a few hundred lines of arithmetic and PRINT statements. The interesting question is what "porting" should mean when the source material is a piece of history.
 
 There are two honest answers. You can translate the game logic into idiomatic Rust and build a modern terminal UI around it, which preserves the rules but discards the artifact. Or you can preserve the artifact itself: write an interpreter that runs the original BASIC listing, character graphics and all, inside a modern terminal. This project ended up doing both, and the second path turned out to be where all the hard lessons live.
 
@@ -10,7 +21,7 @@ The screenshot above is the payoff. On the left, the original PRG running in VIC
 
 ## Two ports, one game
 
-The repository holds both approaches side by side. The first is a conventional rewrite: `GameState`, `Player`, and `Team` structs, a match engine that reproduces the original formulas, and a ratatui interface. It plays well, but every screen is an interpretation. The second is `c64basic`, a small interpreter crate that consumes the original listing in petcat format, the textual encoding VICE uses where control characters appear as `{clr}`, `{down}`, or `{$dd}`.
+The repository holds both approaches side by side. The first is a conventional rewrite: `GameState`, `Player`, and `Team` structs, a match engine that reproduces the original formulas, and a ratatui interface. It plays well, but every screen is an interpretation. The second is [`c64basic`](https://github.com/aovestdipaperino/c64basic), a small interpreter crate that consumes the original listing in petcat format, the textual encoding VICE uses where control characters appear as `{clr}`, `{down}`, or `{$dd}`.
 
 The interpreter pipeline is deliberately boring:
 
@@ -59,6 +70,20 @@ Now the mapping is a matter of looking: `$B0` is a square top-left corner, so it
 
 One structural fact fell out for free: bytes `$60` to `$7F` map to the same ROM glyphs as `$C0` to `$DF`, so the second range is defined as a one-line delegation to the first. That is not an optimization; it is what the hardware does, and encoding hardware facts as code structure is the closest thing this kind of project has to a design principle.
 
+## Borrowing the real font
+
+Unicode gets you a recognizable pitch, but it is still an impersonation. `┌` in a modern terminal font is a thin elegant line; the C64 drew its corners two pixels thick, and its rounded corners have a chunky charm no coding font reproduces. There is a way to stop impersonating: Style64 publishes C64 Pro Mono, a free TrueType font built from the actual character ROM, with every glyph of both PETSCII banks exposed through Unicode private use area codepoints, screen codes mapped at U+EE00 for the uppercase bank and U+EF00 for the lowercase one. Since the interpreter already stores the screen as PETSCII bytes, a `--c64-font` flag that emits those codepoints instead of the standard mapping is almost embarrassingly small: convert the print code to a screen code, add the base, done. Set the terminal font to C64 Pro Mono and every cell is the exact 8x8 bitmap the VIC-II would have fetched.
+
+Almost. The first run produced skulls and smileys where the letters F, G, and I should have been. The private use area is legally a no man's land, and modern terminals have quietly colonized it: Warp and Ghostty ship built-in Nerd Font symbols and override parts of that range no matter which font you chose, and the Nerd Font "progress" icons happen to sit at U+EE00 through U+EE0B, exactly where the screen codes for those letters land. Ghostty adds a second insult by treating private use glyphs as icons and stretching them to double width when the neighboring cell has room, which turned the box corners of the team-selection screen into giant blots.
+
+The fix was to invert the strategy. Parsing the font's character map showed that C64 Pro Mono also covers nearly all of the standard Unicode codepoints the renderer already used, box drawing, block elements, card suits, and draws them with the same authentic bitmaps. So `--c64-font` now emits standard Unicode wherever the font covers it, and reserves the private use area for exactly eight screen codes that have no faithful Unicode equivalent, things like the half-cell checkerboards and the thin vertical bars. Letters stay letters, terminals keep their hands off them, and fidelity survives.
+
+One caveat remains, and it is instructive. Ghostty, Kitty, and WezTerm draw box-drawing characters themselves, bypassing the font entirely so that lines join seamlessly, which silently reintroduces the thin modern corners. Plain Terminal.app, with no such cleverness, renders the font's own glyphs and produces the most faithful picture of the three. The most advanced terminals are the worst at getting out of the way, and the fifty-year-old default is the best.
+
+<img src="./font-comparison.png" alt="The team selection screen rendered side by side: Terminal.app on the left with the C64 font's chunky two-pixel box lines and rounded corners, Ghostty on the right drawing the same box with its own thin box-drawing lines" width="100%">
+
+The text is identical on both sides, pixel for pixel, because letters come straight from the font. The frame gives the game away: on the left, Terminal.app uses the font's glyphs and the box has the thick rounded corners of a real C64; on the right, Ghostty substitutes its own hairline box drawing and the eighties evaporate from everything but the type.
+
 ## Emulating slowness on purpose
 
 The first time the interpreter ran the full game, the splash screen was invisible. Not broken: too fast. The original paces itself with empty delay loops, `FOR TR=1 TO 500: NEXT`, which burn real time at 1 MHz and evaporate in native code. A Rust interpreter executes a couple of million BASIC statements per second; the goal animation, twenty ball movements with delay loops between them, completed between two frames of the renderer.
@@ -72,6 +97,10 @@ earned -= budget as f64;
 ```
 
 The cap at one second of backlog matters: without it, any stall (a window resize, a debugger pause) would bank thousands of statements and release them as a burst, skipping the very animations the throttle exists to preserve. A `--speed` flag scales the rate, and `--speed max` removes it for testing. Emulating a slow machine turns out to mean emulating its slowness.
+
+<img src="./goal-comparison.gif" alt="Animated comparison of the goal celebration: the original game flashing GOAL! in VICE on the left, and the same listing rendered by the Rust interpreter in a terminal on the right" width="100%">
+
+This is what the throttle buys. On the left, the original PRG in VICE flashes its reverse-video `GOAL !` at the pace 1985 intended; on the right, the Rust interpreter runs the same animation loop at the same rhythm, ten flashes with a `FOR TY=1 TO 100` delay between each. The two matches are different because each side rolled its own random numbers, but the celebration is beat for beat the same animation. At native speed it would be over in less than a millisecond.
 
 ## Let the original testify
 
@@ -143,9 +172,15 @@ None of this is mockery. It is what shipping looked like when your debugger was 
 
 ## Back to the metal
 
-The fixed and international editions are just text files the Rust interpreter reads. Turning them into something a real C64 can boot means tokenizing them into a PRG, which VICE's `petcat` tool does. The first attempt produced `?SYNTAX ERROR IN 1` the instant the machine tried to run it, on a line that reads simply `GOTO 6`.
+The fixed and [international](https://gist.github.com/aovestdipaperino/b614dbf5a0fcf00fc70540e710ae55ef) editions are just text files the Rust interpreter reads. Turning them into something a real C64 can boot means tokenizing them into a PRG, which VICE's `petcat` tool does. The first attempt produced `?SYNTAX ERROR IN 1` the instant the machine tried to run it, on a line that reads simply `GOTO 6`.
 
 The cause is a convention collision. In petcat's text format, unshifted letters are written lowercase; an uppercase letter means a shifted PETSCII character. The editions were written in tidy all-caps, so `petcat` dutifully tokenized `GOTO` as six shifted graphics characters rather than the GOTO keyword. The fix is counterintuitive: lowercase the entire source before tokenizing. On the C64's default uppercase/graphics character set, those lowercase PETSCII codes render as capital letters anyway, so the game still looks all-caps on screen. Lowercase to the tool, uppercase to the eye. With that, both editions boot on the genuine machine and land on their team-selection screens, closing the loop from original listing to modern interpreter and back to a bootable binary.
+
+## And now, the browser
+
+The screen-buffer decision paid one more dividend: the interpreter core compiles to WebAssembly unchanged. Because it never talks to a terminal, only pokes PETSCII bytes into a 40 by 25 grid, nothing in it cares whether the host is crossterm or a browser. The web front-end skips fonts and terminal quirks entirely and blits 8x8 glyphs straight from the C64 character generator ROM into a canvas, so every cell is pixel-exact by construction, with no clever terminal to substitute its own hairline corners.
+
+The rest of the machinery carried over just as cleanly. The same 600-statements-per-second token bucket runs on requestAnimationFrame instead of a native loop, so the goal celebration flashes at the pace 1985 intended, and keyboard events map to PETSCII bytes exactly as the TCP keyport does. You can play the international edition live at [fm.enzolombardi.net](https://fm.enzolombardi.net), and the interpreter source lives at [github.com/aovestdipaperino/c64basic](https://github.com/aovestdipaperino/c64basic).
 
 ## What the pitch taught about preservation
 
@@ -157,6 +192,6 @@ If you try this yourself, start with the screen buffer in the native encoding an
 
 ---
 
-Want more like this?
+## Want more like this?
 I write regularly about Rust, design patterns, and performance tips.
 Follow me here [on Medium](https://enzolombardi.net) to stay updated.

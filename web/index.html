@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Football Manager (C64, 1985) — in your browser</title>
+<style>
+  body {
+    background: #222;
+    color: #ddd;
+    font-family: monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 24px 12px;
+  }
+  canvas {
+    width: min(96vw, 768px);
+    image-rendering: pixelated;
+    outline: none;
+  }
+  #controls { display: flex; gap: 16px; align-items: center; }
+  select, button { font-family: monospace; }
+  #hint { color: #888; font-size: 13px; }
+</style>
+</head>
+<body>
+<h2>Football Manager — C64 BASIC, interpreted in WebAssembly</h2>
+<canvas id="screen" width="384" height="272" tabindex="0"></canvas>
+<div id="controls">
+  <label>Speed:
+    <select id="speed">
+      <option value="600" selected>1x (authentic C64)</option>
+      <option value="2400">4x</option>
+      <option value="6000">10x</option>
+      <option value="600000">max</option>
+    </select>
+  </label>
+  <button id="reset">Reset</button>
+</div>
+<div id="hint">Click the screen, then type. Enter confirms input; arrows and Backspace work.</div>
+<script type="module">
+import init, { Machine } from './pkg/c64basic.js';
+
+await init();
+
+const canvas = document.getElementById('screen');
+const ctx = canvas.getContext('2d');
+let machine = new Machine(undefined);
+let halted = false;
+let earned = 0;
+let last = performance.now();
+
+function loop(now) {
+  const rate = Number(document.getElementById('speed').value);
+  earned = Math.min(earned + (now - last) / 1000 * rate, rate);
+  last = now;
+  const budget = Math.floor(earned);
+  earned -= budget;
+  if (!halted && budget > 0) {
+    try { halted = machine.tick(budget); }
+    catch (e) { console.error(e); halted = true; }
+  }
+  const buf = machine.frame();
+  ctx.putImageData(new ImageData(new Uint8ClampedArray(buf), machine.width(), machine.height()), 0, 0);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// Map browser keys to PETSCII bytes, mirroring the native --keyport path:
+// uppercase letters, Enter -> 0x0D, Backspace -> 0x14, cursor keys.
+canvas.addEventListener('keydown', (e) => {
+  let b = null;
+  if (e.key.length === 1) {
+    const c = e.key.toUpperCase().charCodeAt(0);
+    if (c >= 0x20 && c <= 0x5F) b = c;
+  } else if (e.key === 'Enter') b = 0x0D;
+  else if (e.key === 'Backspace') b = 0x14;
+  else if (e.key === 'ArrowDown') b = 0x11;
+  else if (e.key === 'ArrowUp') b = 0x91;
+  else if (e.key === 'ArrowRight') b = 0x1D;
+  else if (e.key === 'ArrowLeft') b = 0x9D;
+  if (b !== null) { machine.key(b); e.preventDefault(); }
+});
+
+document.getElementById('reset').addEventListener('click', () => {
+  machine = new Machine(undefined);
+  halted = false;
+  earned = 0;
+  canvas.focus();
+});
+canvas.focus();
+</script>
+</body>
+</html>

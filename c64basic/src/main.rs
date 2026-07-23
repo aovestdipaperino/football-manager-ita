@@ -22,7 +22,7 @@ use screen::Screen;
 const C64_STMTS_PER_SEC: f64 = 600.0;
 
 fn main() {
-    let usage = "usage: c64basic <file.txt> [--speed <mult>|max] [--keyport <port>] [--seed <n>] [--parse-only] [--headless <n>]";
+    let usage = "usage: c64basic <file.txt> [--speed <mult>|max] [--keyport <port>] [--seed <n>] [--parse-only] [--headless <n>] [--c64-font]";
 
     // --speed 1 (default) approximates real C64 pacing so delay loops and
     // animations take authentic time; --speed max runs unthrottled.
@@ -31,6 +31,7 @@ fn main() {
     let mut headless: Option<u32> = None;
     let mut parse_only = false;
     let mut keyport: Option<u16> = None;
+    let mut c64_font = false;
     let mut seed: Option<u64> = None;
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
@@ -71,6 +72,7 @@ fn main() {
                 }
             }
             "--parse-only" => parse_only = true,
+            "--c64-font" => c64_font = true,
             _ if path.is_none() => path = Some(a),
             _ => {
                 eprintln!("{}", usage);
@@ -124,13 +126,15 @@ fn main() {
         return;
     }
 
-    let interp = match make_interp(prog) {
+    let mut interp = match make_interp(prog) {
         Ok(i) => i,
         Err(e) => {
             eprintln!("{}", e);
             std::process::exit(1);
         }
     };
+
+    interp.screen.c64_font = c64_font;
 
     let key_rx = keyport.map(spawn_key_listener);
 

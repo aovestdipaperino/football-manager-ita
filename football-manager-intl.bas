@@ -78,7 +78,7 @@
 570 REM GIOCO PRINCIPALE
 580 DIMA$(64),B$(24),C$(30),D$(2),A(24),B(24),C(24),D(14),E(16),F(16),G(16)
 590 DIMH(2),J(16),V(16),W(16)
-595 I=0:W=150000000:Y=0:Z=0:K=15:R=20:B1=1
+595 I=0:W=15000:Y=0:Z=0:K=15:R=20:B1=1
 600 C$="DCA* SG":G(0)=-1
 605 FORHZ=1TO16:W(HZ)=0:NEXT
 610 FORHZ=1TO24:READB$(HZ):NEXT:PT$="   "
@@ -149,7 +149,7 @@
 1213 KJ=3
 1220 PRINT"{rght}{rght}"CHR$(XZ+64)" "MID$(C$,KJ,1);
 1225 PRINT" "B$(XZ)TAB(17);B(XZ)TAB(25);A(XZ)TAB(29);
-1230 PRINT5000000*(5-N)+5000000*A(XZ);TAB(35)MID$(C$,(C(XZ)+3),1):
+1230 PRINT500*(5-N)+500*A(XZ);TAB(35)MID$(C$,(C(XZ)+3),1):
 1240 IFC(XZ)=3THENPZ=PZ+1:GOTO1260
 1250 IFC(XZ)=4THENUZ=UZ+1
 1260 NEXT
@@ -163,7 +163,7 @@
 1330 UZ=ASC(A$)-64:PRINT"{home}":REMPOKE53272,28
 1340 IFC(UZ)=0THENPRINTRIG$"{rght}{rght}{rght}{rght}"B$(UZ)" IS NOT IN YOUR TEAM{down}{down}{down}":GOTO1430
 1350 IFC(UZ)=1THENPRINTRIG$"{rght}{rght}{rght}{rght}THERE ARE NO OFFERS FOR "B$(UZ)"{down}{down}{down}":GOTO1430
-1360 PZ=5000000*(5-N)+5000000*A(UZ):PZ=INT(PZ+(RND(1)*(PZ/10))-(RND(1)*(PZ/10)))
+1360 PZ=500*(5-N)+500*A(UZ):PZ=INT(PZ+(RND(1)*(PZ/10))-(RND(1)*(PZ/10)))
 1365 PRINTRIG$
 1370 PRINT"{rght}{rght}ACCEPT "PZ" FROM "A$(INT(RND(1)*64)+1)
 1380 PRINT"{rght}{rght}FOR YOUR PLAYER "B$(UZ)" ?"
@@ -177,21 +177,21 @@
 1460 REM PRESTITO
 1465 GOSUB200
 1470 PRINT"{home}":PRINT"{rght}{rght}{rght}        BANK OF SPORT"
-1475 PRINT"{down}{down}{rght}{rght}{rght}YOU HAVE A TOTAL OF \ "W
-1480 PRINT"{down}{down}{rght}{rght}{rght} AND A DEBT OF \ "Y
+1475 PRINT"{down}{down}{rght}{rght}{rght}YOU HAVE A TOTAL OF FL. "W
+1480 PRINT"{down}{down}{rght}{rght}{rght} AND A DEBT OF FL. "Y
 1490 PRINT"{down}{down}{rght}{rght}{rght}HOW MUCH DO YOU WANT TO BORROW{down}{down}"
 1500 INPUTXZ:IFXZ=0THENRETURN
-1510 IFXZ+Y>100000000*(5-N)THENPRINT"{down}{down}{rght}{rght}{rght}IT IS NOT POSSIBLE TO GET"
-1515 IFXZ+Y>100000000*(5-N)THENPRINT"{rght}{rght}{rght}A LOAN OF \ "XZ+Y
-1520 IFXZ+Y>100000000*(5-N)THENPRINT"{rght}{rght}{rght}THE MAX DEBT IN DIVISION "SR$(N)
-1525 IFXZ+Y>100000000*(5-N)THENPRINT"{rght}{rght}{rght}IS \ "100000000*(5-N)
-1530 IFXZ+Y>100000000*(5-N)THENGOTO1590
+1510 IFXZ+Y>10000*(5-N)THENPRINT"{down}{down}{rght}{rght}{rght}IT IS NOT POSSIBLE TO GET"
+1515 IFXZ+Y>10000*(5-N)THENPRINT"{rght}{rght}{rght}A LOAN OF FL. "XZ+Y
+1520 IFXZ+Y>10000*(5-N)THENPRINT"{rght}{rght}{rght}THE MAX DEBT IN DIVISION "SR$(N)
+1525 IFXZ+Y>10000*(5-N)THENPRINT"{rght}{rght}{rght}IS FL. "10000*(5-N)
+1530 IFXZ+Y>10000*(5-N)THENGOTO1590
 1540 Y=Y+XZ*1.2:Z=Y/20:W=W+XZ
 1550 PRINT"{down}{down}{rght}{rght}{rght}YOU HAVE OBTAINED"
-1555 PRINT"{rght}{rght}{rght}A LOAN OF \ "XZ
-1560 PRINT"{rght}{rght}{rght}TOTAL DEBT \ "Y
-1570 PRINT"{rght}{rght}{rght}WEEKLY INTEREST \ "Z
-1580 PRINT"{rght}{rght}{rght}YOU HAVE \ "W
+1555 PRINT"{rght}{rght}{rght}A LOAN OF FL. "XZ
+1560 PRINT"{rght}{rght}{rght}TOTAL DEBT FL. "Y
+1570 PRINT"{rght}{rght}{rght}WEEKLY INTEREST FL. "Z
+1580 PRINT"{rght}{rght}{rght}YOU HAVE FL. "W
 1590 PRINT"{down}{down}  PRESS SPACE "
 1600 GETA$:IFA$<>" "THEN1600
 1610 RETURN
@@ -223,7 +223,7 @@
 1810 PRINT"{down}{down}{rght}{rght}{rght}SEASONS PLAYED : "B1
 1820 PRINT"{down}{down}{rght}{rght}{rght}TEAM MORALE : "K
 1830 PRINT"{down}{down}{rght}{rght}{rght}POSITION : "V(1)"'  IN DIVISION "SR$(N)"."
-1840 PRINT"{down}{down}{down}{rght}{rght}{rght}MONEY IN BANK : "W
+1840 PRINT"{down}{down}{down}{rght}{rght}{rght}MONEY IN BANK : "W" FL."
 1850 PRINT"{down}{rght}{rght}{rght}   DEBTS       : "Z
 1860 PRINT"{down}{down}{down}{rght}{rght}{rght}PRESS SPACE"
 1870 GETA$:IFA$<>" "THEN1870
@@ -368,12 +368,12 @@
 3640 GETA$:IFA$<>" "THEN3640
 3650 RETURN
 3660 REM GUADAGNI
-3670 XZ=0:FORPZ=1TO24:IFC(PZ)>0THENXZ=XZ+70000+(5-N)*10000
+3670 XZ=0:FORPZ=1TO24:IFC(PZ)>0THENXZ=XZ+7+(5-N)
 3680 NEXT
-3685 HZ=XZ+500000*(5-N)+Z
+3685 HZ=XZ+50*(5-N)+Z
 3690 GOSUB 350:PRINT"{home}{down}{rght}{rght}WEEKLY BALANCE :"
 3700 PRINT"{down}{down}{rght}{rght}STADIUM RENT    :"XZ
-3710 PRINT"{rght}{rght}SUNDRY EXPENSES :"500000*(5-N)
+3710 PRINT"{rght}{rght}SUNDRY EXPENSES :"50*(5-N)
 3720 PRINT"{rght}{rght}DEBT INTEREST   :"Z
 3730 PRINT"{rght}{rght}TOTAL EXPENSES  :"HZ
 3740 PRINT"{rght}{rght}GATE RECEIPTS   :"A2
@@ -381,11 +381,11 @@
 3760 PRINTA2-HZ:W=W+A2-HZ
 3770 IFW<0THENPRINT"{down}{down}{down}{rght}{rght}THE DEBT IS INCREASED"
 3775 IFW<0THENPRINT"{down}{rght}{rght}TO PAY THE STADIUM RENT{up}"
-3780 IFW<0THENW=W+1000000:Y=Y+1200000:Z=Y/20:GOTO3780
+3780 IFW<0THENW=W+100:Y=Y+120:Z=Y/20:GOTO3780
 3790 Y=Y-Z:IFY=0THENZ=0
-3800 IFW<0THENPRINT"{down}{down}{rght}{rght}YOU HAVE \ "W:GOTO3805
-3802 PRINT"{down}{down}{down}{rght}{rght}YOU HAVE \ "W
-3805 PRINT"{rght}{rght}AND A DEBT OF \ "Y
+3800 IFW<0THENPRINT"{down}{down}{rght}{rght}YOU HAVE FL. "W:GOTO3805
+3802 PRINT"{down}{down}{down}{rght}{rght}YOU HAVE FL. "W
+3805 PRINT"{rght}{rght}AND A DEBT OF FL. "Y
 3810 PRINT"{rght}{rght}SPACE  TO CONTINUE"
 3820 GETA$:IFA$<>" "THEN3820
 3830 RETURN
@@ -397,8 +397,8 @@
 3870 PRINT"{home}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{rght}{rght}_   TO CHANGE PLAYER"
 3872 PRINT"{rght}{rght}^   TO BUY NOBODY"
 3875 PRINT"{home}{down}{rght}{rght}{rght}{rght}{rght}      TRANSFER  MARKET "
-3880 PRINT"{down}{down}{rght}{rght}YOU HAVE \ "W
-3900 XZ=5000000*(5-N)+5000000*A(PZ)
+3880 PRINT"{down}{down}{rght}{rght}YOU HAVE FL. "W
+3900 XZ=500*(5-N)+500*A(PZ)
 3910 PRINT"{down}{down}{rght}{rght}"MID$(C$,INT((PZ-1)/8)+1,1)TAB(10)B$(PZ)"           "
 3920 PRINT"{down}{down}{rght}{rght}STYLE "A(PZ)TAB(10)"{blk}:{wht}POWER "B(PZ)TAB(22)"{blk}:{wht}VALUE "XZ
 3930 PRINT"{down}{down}{down}{down}{down}{rght}{rght}WHAT IS YOUR OFFER"
@@ -505,7 +505,7 @@
 20515 IFU1=P1THENK=INT(K/2)+1:GOTO20530
 20520 K=K-2:IFK<1THENK=1
 20530 IFV(1)=0THENV(1)=INT(RND(1)*16)+1
-20550 A2=(17-V(1))*INT(RND(1)*400000)+500000*(5-N)
+20550 A2=(17-V(1))*INT(RND(1)*40)+50*(5-N)
 20560 PRINT"{rght}{rght}GATE RECEIPTS :"A2:K=INT(K)
 20570 IFL=1THENC$(I+1)=STR$(SZ)+","+STR$(A3)+"."+STR$(H(A3))+STR$(H(A4))
 20580 RETURN

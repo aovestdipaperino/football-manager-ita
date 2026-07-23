@@ -8,3 +8,5 @@ pub mod interp;
 pub mod lang;
 pub mod petscii;
 pub mod screen;
+#[cfg(target_arch = "wasm32")]
+pub mod wasm;

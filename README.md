@@ -35,6 +35,7 @@ Press keys to play; `Ctrl-C` quits.
 | `--seed <n>` | Seed the RNG so `RND` is reproducible (deterministic runs and tests). |
 | `--headless <n>` | Run `n` statements with no UI and dump the final screen. |
 | `--parse-only` | Parse the listing and report line count without running. |
+| `--c64-font` | Render with the real C64 glyphs instead of approximate Unicode. Requires setting your terminal font to [C64 Pro Mono](https://style64.org/c64-truetype) (free TrueType built from the character ROM); the interpreter emits the font's private-use codepoints (`U+EE00`/`U+EF00` screen-code banks), so with any other font you'll see placeholder boxes. |
 
 Scripted play example:
 

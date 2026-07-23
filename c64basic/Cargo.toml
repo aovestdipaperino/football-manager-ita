@@ -3,10 +3,22 @@ name = "c64basic"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["terminal"]
+terminal = ["dep:crossterm"]
+
 [dependencies]
-crossterm.workspace = true
+crossterm = { workspace = true, optional = true }
 rand.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+getrandom = { version = "0.2", features = ["js"] }
 
 [[bin]]
 name = "c64basic"
 path = "src/main.rs"
+required-features = ["terminal"]

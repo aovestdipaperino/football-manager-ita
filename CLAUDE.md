@@ -32,7 +32,7 @@ cargo test
 
 - `footballmanager.txt` / `footballmanager.bas` / `footballmanager.prg`: the original Italian game, kept intact. `.txt` is petcat-format source (the interpreter's input); `.prg` is the tokenized C64 binary.
 - `football-manager-ita-fixed.bas`: the Italian game plus fixes for bugs in the original listing (see `POSSIBLE-BUGS.md`).
-- `football-manager-intl.bas`: internationalized edition. European superleague (64 clubs, 4 divisions A-D), English text, currency scaled x1000 to modern values, modern player names, 3 points per win. Includes the same bug fixes.
+- `football-manager-intl.bas`: internationalized edition. European superleague (64 clubs, 4 divisions A-D), English text, amounts in a fictional currency (FL., florins, 1/10000 of the original x1000 scale so they fit the 40-column screen), modern player names, 3 points per win. Includes the same bug fixes.
 
 ## Architecture: the `c64basic` crate
 
@@ -51,7 +51,7 @@ The interpreter must run the original listing unmodified. When investigating gam
 - Goal (20290/20310): `RND(attack_rating) - RND(opponent_defense_rating) > 0`
 - Opponent stats (3220): generated from league points, `RND*(points/matches*3)+10`, capped at 20
 - Match tempo (20200): `HZ = both attacks - both defenses`, min 15
-- Player market value (1230): `5000*(5-league) + 5000*style` (x1000 in intl)
+- Player market value (1230): `5000*(5-league) + 5000*style` (in intl: `500*(5-league) + 500*style` florins)
 - Loan (1540): `debt += amount*1.2; weekly_interest = debt/20`
 - Original scoring: 2 points per win (3 in the intl edition)
 
